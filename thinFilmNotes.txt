@@ -1,0 +1,163 @@
+Compared to 'thinfilm.hansteen.net', R/T tend to be slightly off
+in amplitude, position of angular/wavelength spectral features but
+general shapes are the same.  
+
+The T/R angular features diverge significantly at theta > 60deg (for
+an Al substrate with a complex index of refraction).  For air substrate
+results seem to be the same as with lower angles (slightly different
+  angular positions of features)
+
+Luxpop agrees with hansteen.net for the angle plot.
+
+This problem only occurs when interference matters (ie not when the
+substrate is the same as the film) and at incidence angles off normal
+
+Implemented the most basic possible version of the matrix method in 
+'basicThinFilm.py' and got the same results.  Found that the transmission
+matrix elements in Guenther are wrong but that this does not make a difference.
+
+11/18/15: Found the error that was causing disagreement.  Referring to
+Petersson 1999, put cos term in numerator of phase factor.  Don't understand
+why this is the case but it gives agreement with LuxPop [Hansteen seems to
+no longer be online but LuxPop gave same answers]
+
+Am considering rewriting code: instead of generating matrix of all parameters
+and then calculating matrices, will have a method that generates matrix and is called as needed (is this the same? I think so...)
+
+11/12/15: Now giving results for s- and p-polarization reflectance 
+consistent with 'basicThinFilm' and 'LuxPop', for the simple test
+configuration (1220nm of 1.52 material, 500nm wavelength, angle sweep).  
+Still need to test with absorption (nonzero imaginary portion of index)
+
+12/31/15: Note that also talked to PGS and he agrees that the cos factor
+should be in the numerator (this was in November).
+
+1/04/15: Testing another configuration (142nm of 0.14+2.8j material [Ag] 
+at 500nm, angle sweep, index 1.0 on both sides) [thin film of metal]
+
+There is agreement for R_s, R_p with LuxPop at angles (deg): 0,20,50,60,82
+For this configuration R_s increases monotonically with increasing angle 
+and R_p has a minimum around 70deg before increasing again with angle
+(both greater than 90% for all angles)
+
+For this configuration T_s, T_p are below 0.0001 at all angles (max precision for LuxPop) and LuxPop gives 0.0001 or 0.0000 at 0,20,50,60,80
+
+Will try another test: metal substrate with air, no layers ('stack=[]')
+In this case R_s, R_p from thinFilm.py are the same as for the 122nm Ag
+film (suggesting it's not a 'thin' film), T_s,T_p are large (not well
+defined) and so in this case Ravg+Tavg > 1
+
+LuxPop also gives this result for R_s, R_p
+
+Terminology note: reflectivity is the property of a material (thick
+reflecting layer), reflectance is the power reflected by a specific
+layered material
+
+1/07/15: Adding save functions.  TRAnglePlot plots average T/R against
+angle.  I will be adding functions that plot E^2 against distance in the
+structure (averaged over all wavelengths) and the integral of E^2 against
+wavelength.  There will also be a save file with general information.
+
+Noted that ESqAvg is giving complex values which should not be the case.
+Am checking that ESqIntegral uses a correct expression
+
+1/12/15: Replacing ESqIntegral with a new function (same name) that uses
+numerical integration.  The analytical expression for the E^2 value will be
+very long and for now will use numerical result.
+
+Will test by integrating an E-field in index 1 along one wavelength.  This
+should give lambda/2, which is the case.
+
+Discovered and corrected problem with the computation of the M matrices that
+caused incorrect R,T for more than one layer.  Still working on a problem that
+causes E^2 plotting to appear discontinuous.
+
+1/19/15: Flipped the sign of r_p because in Petersson the values of r_s and r_p
+did not reduce to the same limit (signs were flipped) in the case of incident
+light.  This gives continuous E-field plotting. 
+(NOTE [1/20]: this depends on the sign convention used for the E-fields
+at the interface, the fact that this change causes consistent E-field
+plotting likely means that I was using an inconsistent sign convention
+beforehand)
+
+Will compare reflectance, transmission for a few structures again with LuxPop to
+confirm that this does not change:
+Test structure 1: 1-19_test1, two layers of high-index with no attenuation
+R_s,R_p agree at 0, 30, 55, 72 deg
+T_s,T_p agree at 0, 30, 55, 72 deg 
+
+Appears that T,R still working and that E-field is meeting continuity
+boundary condition.  Will attempt first modeling.  
+Indices from refractiveindex.info
+Will use lambda=4um.  The stack will be: Si initial medium (index 3.4258),
+SiO2 (index 1.399), HgTe+AgTe (index 2.4), Au (index 2.4392+25.33j)
+
+First goal will be to see how much freedom there is to tune the E^2 integral
+through the thickness of the Au contact for a fixed thickness of SiO2
+
+Integral of E^2 (magnitude of standing E-field) appears to drop off quickly
+with increasing thickness of Au film
+
+For gold at 4um, Im(n(omega))=25.33, and the penetration depth (power)
+should be lambda/(4*pi*Im(n))=12nm [for comparison]
+
+Unless the back contact is much larger than the penetration depth in gold, the reflection with the second medium will matter
+
+Will perform a second set of models with Ag paint in the back (stacks 16-)
+Index of silver at 4um: 2.1392+26.027j
+
+1/20/16  Changed T to be the correct transmittance coefficient (did not have
+factors of index and cosines from the Poynting vector and beam area; see
+Hecht for the form used)
+
+Am going to change the way E^2 is evaluated for p-polarization (see paper
+notes for 1/20), this should not affect resutls from yesterday.
+
+1/27/16  Updated the E-squared evaluation method to use the correct expression
+(derived in thesis notebook).  Checked agreement for ESq plotting and integral
+with the previous method in the theta=0 case (for 1_19stack1)
+
+This is how the E-square methods call each other:
+ESqPlot -> ESqEval
+ESqIntEval -> ESqIntegral -> ESqEval
+
+2/3/16: Will be writing some code to fit to the T/R data.  
+This is the file trFit.py 
+
+Will need to add a plot of T/R vs. wavelength/k to thinFilm first.  For now
+this method will perform the conversion wavelength -> wavenumber for the
+output.
+
+Note: T from evalMatrices is returning complex values (with component 0j,
+so not necessarily a problem) because 'snell' returns a complex value.
+This may be because 'snell' takes the arcsin of a complex argument
+
+2/5/16:
+Copied curveFit.py from the Single Photon experiment folder for 211
+
+2/10/16:
+The file JRB32A1.CSV has wavenumbers (cm^-1) vs. transmission (%)
+
+In thinFilm, added division by number of wavelengths or angles in the
+TRSpectrumPlot and TRAnglePlot functions
+
+3/17/16:
+Yesterday added functionality to thinFilm.py indexLookup to support
+evaluating using Drude model.  Tested this by plotting transmission
+for an ITO film with best-fit parameters using thinFilm.py and comparing
+to best-fit plot for trFit.py
+
+Also added an option for a bulk transmission coefficient from the substrate to air (in thinFilm.evalMatrices()) 
+
+3/31/16:
+Started looking at results from ParamVary.  Observed periodic peaks
+in the HgTe E^2 integral as a function of thickness of both the HgTe
+film and the SiO2 layer.  Want to talk to PGS about what to use for
+the SiO2 film thickness (ellipsometry?) and do some background
+research on this also.  Au still shows same peak at very thin layer
+that identified previously (at around 2-2.5nm).
+
+Will start looking at optimizing over multiple parameters at once.
+
+Another thing to think about: how resistant is this to variations
+in index, etc?

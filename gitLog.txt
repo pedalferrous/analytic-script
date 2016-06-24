@@ -1,0 +1,101 @@
+commit 5962cf58ab085688e828abc188fdc2ad25f8532a
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Mon Jun 20 15:04:35 2016 -0500
+
+    incorporated the drude() method into thinFilm.py instead of in a separate file.  drudeLorentz.py is now deprecated
+
+commit e76eda25db37151381bcd255db6553c8d7a67984
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Mon Jun 20 14:49:58 2016 -0500
+
+    Cleaned up before sending to Zane.  Added E^2 integral spectrum sweep to thinFilm.py and removed that functionality from paramVary.py.  Made input to thinFilm.py cleaner.  Removed obsolete code, updated comments and rearranged order of thinFilm.py methods for readability.
+
+commit 672223be264d985d49bd2be2c639f7d508cb424b
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Thu Jun 2 14:27:39 2016 -0500
+
+    First git update in two months.  File paramVary.py is used to sweep device parameters (layer thicknesses, indices) as well as incident wavelength.
+
+commit 23e4f0457e15fbb199ecfb1d2f4c90c58dc89952
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Thu Mar 17 16:28:09 2016 -0500
+
+    Now supports Drude model function for index lookup
+
+commit cc2ad2040450f1c55edace1010049dc1e0832137
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Fri Mar 4 17:03:01 2016 -0600
+
+    trFit.py now incorporates two possible constraints (n_inf, rho); drudeLorentz has functions for both Drude and Lorentz models that are now referenced by trFit and thinFilm
+
+commit d1598fe7cf11bbc9267fb8ec8586edf35c3f01d8
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Wed Feb 10 17:54:28 2016 -0600
+
+    Fixed T/R averaging in thinFilm and did first fits with trFit
+
+commit 73e409b4e883ef37f24f4b4bb7f23df2202a764c
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Thu Feb 4 16:29:47 2016 -0600
+
+    trFit is a new script to be used to fit to the T curve of ITO on silicon in order to extract refractive indices.  thinFilm has a new function TRSpectrumPlot for this purpose as well
+
+commit aa3eefff5e03f2888726bbf28bf8b76255b7b77b
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Wed Jan 27 16:19:33 2016 -0600
+
+    Transmission matrices and E-squared methods have been rewritten using the expressions derived in thesis notebook
+
+commit 4b99cecab5b29910c910074fd5156e74b58871fc
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Tue Jan 12 16:58:42 2016 -0600
+
+    Have added functions for T/R plotting, save file, and E^2 integration and plotting.  Solved problem with computation of M (see notes). Still need to fix E^2 plotting issue
+
+commit 39229038e1de14f9731e5229dc94c64944fc4459
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Fri Nov 20 16:54:44 2015 -0600
+
+    Updated matrix generation and phase factor to match Petersson et al 1999
+
+commit 44d967956883c410ea14d2317f8c0733deccac33
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Mon Aug 31 18:23:00 2015 -0500
+
+    Removed test methods since testing will be comparison with other calculators
+
+commit 2bb71db613bf120b780cffb001f9d0c122534d07
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Mon Aug 31 13:32:17 2015 -0500
+
+    Split E-field evaluation into several functions and worked on plotting
+
+commit ef935ebf66826e7572b86a94a47d73fd8a602fe6
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Fri Aug 28 17:57:15 2015 -0500
+
+    Worked on E^2 plotting in EFieldDistro
+
+commit 932272afd9aff0dd45ada4f89c5a4903073ddbe1
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Fri Aug 28 11:07:35 2015 -0500
+
+    Changed for loops to list comprehensions where possible for readability
+
+commit 7ef0dace60d77d9295bcc2f12244390e576c7ce4
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Thu Aug 20 16:32:26 2015 -0500
+
+    Added method to calculate E-square integral and began work on EFieldDistro
+
+commit 3135416d63c8039bcd5d601269433d8d6adb60fb
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Tue Aug 18 18:26:31 2015 -0500
+
+    Updated angle and matrix generators with angle dependency
+
+commit 010790fa2f77409a6974563378e8560d9799c04f
+Author: John Roberts <jroberts4717@gmail.com>
+Date:   Thu Aug 6 18:17:11 2015 -0500
+
+    Initial Commit
