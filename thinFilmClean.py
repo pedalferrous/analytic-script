@@ -74,8 +74,8 @@ def main():
 
     stack = [
             film(3500, 1.0, '1.0', False),
-            film(10000, 0.5, '0.5', False),
-            film(3000, 1.0, '1.0', False)
+            film(10000, 0.5+0.01j, '0.5', False),
+            film(3000, 0.8, '1', False)
             ]
 
     ###########################################################
@@ -113,8 +113,16 @@ def main():
     E_i, which is arguably important enough in its own right.
     """
 
-    (T,R,TAvg,RAvg,E_i) = evalMatrices(stack, wls, angles, pols,
-    n_i, n_f, indices, t_angles, P, I, addBulkT=True)
+    # (T,R,TAvg,RAvg,E_i) = evalMatrices(stack, wls, angles, pols,
+    # n_i, n_f, indices, t_angles, P, I, addBulkT=True)
+
+    # field calculations
+    (E_0, E_f, E_i) = evalField(stack, wls, angles, pols,
+    n_i, n_f, indices, t_angles, P, I)
+
+    # transmission and reflection calculations
+    (T, R, TAvg, RAvg) = evalTR(stack, E_f, E_0, angles, n_i, n_f, 
+        t_angles, addBulkT=True)
 
     # useful scalar quantities
     print 'TAvg = {0}'.format(TAvg)
@@ -135,15 +143,15 @@ def main():
     if evalESQint:
         (ESqInt,ESqIntAvg) = ESqIntEval(stack,wls,angles,pols,indices,E_i)
 
-    for i in range(len(stack)):
-        if stack[i].active:
-            print 'Average E^2 integral in active layer ({0}): {1}'.format(
-                stack[i].name,ESqIntAvg[i])
-        if save:
-            saveFile.write('Average E^2 integral in active layer ({0}): {1}\n'.format(
-                stack[i].name,ESqIntAvg[i]))
+        for i in range(len(stack)):
+            if stack[i].active:
+                print 'Average E^2 integral in active layer ({0}): {1}'.format(
+                    stack[i].name,ESqIntAvg[i])
+            if save:
+                saveFile.write('Average E^2 integral in active layer ({0}): {1}\n'.format(
+                    stack[i].name,ESqIntAvg[i]))
 
-    ESqIntSpectrumPlot(ESqInt, stack, wls, angles, pols, indices, save, saveFileName)
+        ESqIntSpectrumPlot(ESqInt, stack, wls, angles, pols, indices, save, saveFileName)
 
     if plotESQ:  
         ESqPlot(E_i, stack, wls, angles, pols, indices, save, saveFileName)
@@ -221,15 +229,15 @@ def snell(indices, angles, n_i, n_f):
             t_angles[i].append([])
             #index over number of angles
             for k in range(len(angles)):
-            t_angles[i][j].append([])
+                t_angles[i][j].append([])
                 if (i == 0):
-                t_angles[i][j][k] = arcsin(n_i*sin(angles[k])/indices[i][j])
+                    t_angles[i][j][k] = arcsin(n_i*sin(angles[k])/indices[i][j])
                 elif (i == len(indices)):
-                t_angles[i][j][k] = arcsin(indices[i-1][j]*sin(
-                t_angles[i-1][j][k])/n_f)
+                    t_angles[i][j][k] = arcsin(indices[i-1][j]*sin(
+                        t_angles[i-1][j][k])/n_f)
                 else:
-                t_angles[i][j][k] = arcsin(indices[i-1][j]*sin(
-                t_angles[i-1][j][k])/indices[i][j])
+                    t_angles[i][j][k] = arcsin(indices[i-1][j]*sin(
+                        t_angles[i-1][j][k])/indices[i][j])
     return t_angles
 
 """Returns 4D lists of P and I matrices indexed by (layer number, wavelength, 
@@ -314,7 +322,7 @@ def evalField(stack, wls, angles, pol, n_i, n_f, indices, t_angles, P, I):
         for j in range(len(wls))]
 
     # exiting field
-    E_f = [[[1/(dot(M_0[j][k][l],array([1,0]))[0]))*array([1.0,0.0])
+    E_f = [[[1/(dot(M_0[j][k][l],array([1,0]))[0])*array([1.0,0.0])
         for l in range(len(pol))]
         for k in range(len(angles))] 
         for j in range(len(wls))]
@@ -326,7 +334,7 @@ def evalField(stack, wls, angles, pol, n_i, n_f, indices, t_angles, P, I):
         for j in range(len(wls))]
         for i in range(len(stack))]
 
-    return E_i
+    return (E_0, E_f, E_i)
 
 def matrixCreate(startLayer, endLayer, pol, angle, wLength, P, I):
     M_partial = identity(2)
@@ -335,6 +343,10 @@ def matrixCreate(startLayer, endLayer, pol, angle, wLength, P, I):
     return M_partial
 
 def evalTR(stack, E_f, E_0, angles, n_i, n_f, t_angles, addBulkT=False):
+    # option to add a bulk transmission coefficient
+    # for a thick substrate. In this case the bulk
+    # coefficient added will be for the final index (n_f) to air (n=1).
+    # this expression is again Hecht 4.68 for normal incidence
     bulkT = (4.0*n_f)/((n_f+1.0)**2)
     if addBulkT:
         T = [[[real(bulkT*(n_f/n_i)*(cos(t_angles[len(stack)][j][k])/cos(angles[k]))*abs(
@@ -352,333 +364,229 @@ def evalTR(stack, E_f, E_0, angles, n_i, n_f, t_angles, addBulkT=False):
         for l in range(len(E_f[0][0]))]
         for k in range(len(E_f[0]))]
         for j in range(len(E_f))]
+
+    #averaging for both of these lists
     TAvg = mean(list(chain.from_iterable(chain.from_iterable(T))))
     RAvg = mean(list(chain.from_iterable(chain.from_iterable(R))))
     
     return (T, R, TAvg, RAvg)
 
-# def evaAVG(matrix, dimension): # for generic use in averaging all elements
-
-
-def evalMatrices(stack, wls, angles, pol, n_i, n_f, indices, t_angles, P, I,
-    addBulkT=False):
-    # Evaluate the M matrix for each layer - eg E_i[i] = M[i]E_f where
-    # E_i[i] is the E-field vector after transmission into layer i but
-    # before propagation.
-    # M indexed by layer, wavelength, angle, polarization.
-    M = []
-    for i in range(len(stack)):
-        M.append([])
-        for j in range(len(wls)):
-            M[i].append([])
-            for k in range(len(angles)):
-                M[i][j].append([])
-                for l in range(len(pol)):
-                    M_partial = array([[1,0],[0,1]])
-                    # indicates propagation from i_th layer to terminal layer 
-                    # (excluding initial)
-                    for index in range(i, len(stack)):
-                        M_partial = dot(M_partial,dot(P[index][j][k], I[index+1][j][k][l]))
-                    M[i][j][k].append(M_partial)
-    #Calculate the total E_f and E_r for the stack using M_0
-    M_0 = [[[dot(I[0][j][k][l], M[0][j][k][l]) 
-        for l in range(len(pol))] 
-        for k in range(len(angles))] 
-        for j in range(len(wls))]
-    #E_0 is the E-field vector before transmission into the first layer
-    # indicating no reverse incident wave (i.e. from the right)
-    # this operation yields non normalized pre-boundary field
-    E_0_noNorm = [[[dot(M_0[j][k][l],array([1,0])) 
-        for l in range(len(pol))] 
-        for k in range(len(angles))] 
-        for j in range(len(wls))]
-    E_0 = [[[array([1.0, E_0_noNorm[j][k][l][1]/E_0_noNorm[j][k][l][0]]) 
-        for l in range(len(pol))] 
-        for k in range(len(angles))] 
-        for j in range(len(wls))]
-    # representative of final E field, now normalized akin to incident E field
-    # solely forward propagating
-    E_f = [[[array([1.0/E_0_noNorm[j][k][l][0],0.0])
-        for l in range(len(pol))]
-        for k in range(len(angles))] 
-        for j in range(len(wls))]
-    E_i = [[[[dot(M[i][j][k][l], E_f[j][k][l])
-        for l in range(len(pol))] 
-        for k in range(len(angles))]
-        for j in range(len(wls))]
-        for i in range(len(stack))]
-    #overall transmittance, reflectance coefficients (following Hecht)
-    #there is also the option to add a bulk transmission coefficient
-    #for a thick substrate (if addBulkT = True).  In this case the bulk
-    #coefficient added will be for the final index (n_f) to air (n=1).
-    #this expression is again Hecht 4.68 for normal incidence
-    bulkT = (4.0*n_f)/((n_f+1.0)**2)
-    if addBulkT:
-        T = [[[real(bulkT*(n_f/n_i)*(cos(t_angles[len(stack)][j][k])/cos(angles[k]))*abs(
-            E_f[j][k][l][0])**2)
-            for l in range(len(pol))]
-            for k in range(len(angles))]
-            for j in range(len(wls))]
-    else:
-        T = [[[real((n_f/n_i)*(cos(t_angles[len(stack)][j][k])/cos(angles[k]))*abs(
-            E_f[j][k][l][0])**2)
-            for l in range(len(pol))]
-            for k in range(len(angles))]
-            for j in range(len(wls))]
-    R = [[[(abs(E_0[j][k][l][1])/abs(E_0[j][k][l][0]))**2
-        for l in range(len(pol))]
-        for k in range(len(angles))]
-        for j in range(len(wls))]
-    TAvg = (sum(T[j][k][l]
-        for l in range(len(pol))
-        for k in range(len(angles))
-        for j in range(len(wls)))
-        /(len(pol)*len(angles)*len(wls)))
-    RAvg = (sum(R[j][k][l]
-        for l in range(len(pol))
-        for k in range(len(angles))
-        for j in range(len(wls)))
-        /(len(pol)*len(angles)*len(wls)))
-    return (T,R,TAvg,RAvg,E_i)
 
 """Return the integral of Re(E)^2 in any layer given the initial E-field
 vector.  This function accounts for absorption and evaluates the integral
 numerically."""
 def ESqIntegral(E_0, index, wl, d, theta, pol):
-  return integrate.quad(lambda x: ESqEval(E_0, index, wl, x, theta, pol),
-    0,d)[0]
+    return integrate.quad(lambda x: ESqEval(E_0, index, wl, x, theta, pol),0,d)[0]
 
 """Evaluate E^2 at a point (given by x) within a desired layer using the
 initial E-field within that layer"""
 def ESqEval(E_0, index, wl, x, theta, pol):
-  E_f = E_0[0]
-  E_r = E_0[1]
-  delta = (2*pi*index*x*cos(theta))/wl
+    E_f = E_0[0]
+    E_r = E_0[1]
+    delta = (2*pi*index*x*cos(theta))/wl
 
-  # note reliance on modulus of field, not its real part.
-  #s-polarization
-  if (pol == 0):
-    E = E_f*exp(1j*delta) + E_r*exp((-1j)*delta)
-    return abs(E)**2
-  #p-polarization
-  elif (pol == 1): 
-    return ((sin(theta)*abs((E_r*exp((-1j)*delta))-(E_f*exp(1j*delta))))**2 
-      + (cos(theta)*abs((E_r*exp((-1j)*delta))+(E_f*exp((1j)*delta))))**2)
+    # note reliance on modulus of field, not its real part.
+    #s-polarization
+    if (pol == 0):
+        E = E_f*exp(1j*delta) + E_r*exp((-1j)*delta)
+        return abs(E)**2
+    #p-polarization
+    elif (pol == 1): 
+        return ((sin(theta)*abs((E_r*exp((-1j)*delta))-(E_f*exp(1j*delta))))**2 
+            + (cos(theta)*abs((E_r*exp((-1j)*delta))+(E_f*exp((1j)*delta))))**2)
 
 """Return the integral of Re(E)^2 in a layer with no absorption 
 given the thickness and the initial E-field vector.  Integral is 
 evaluated analytically.  This method is not currently used."""
 def zeroKESqIntegral(E_0, n, wl, d, theta):
-  phi = (2*pi*n*d)/(wl*cos(theta))
-  #E_0 for forward (F) and reverse (R) components decomposed into real (R)
-  #and imaginary (I) components to make expression easier to read
-  E_0FR = real(E_0[0])
-  E_0FI = imag(E_0[0])
-  E_0RR = real(E_0[1])
-  E_0RI = imag(E_0[1])
-  A = E_0RR + E_0FR
-  B = E_0RI - E_0FI
-  return ((0.5*(phi**2)*(A**2 + B**2)) + (0.25*sin(2*phi)*(A**2 - B**2))
-   - (0.5*A*B*cos(2*phi)))
+    phi = (2*pi*n*d)/(wl*cos(theta))
+    #E_0 for forward (F) and reverse (R) components decomposed into real (R)
+    #and imaginary (I) components to make expression easier to read
+    E_0FR = real(E_0[0])
+    E_0FI = imag(E_0[0])
+    E_0RR = real(E_0[1])
+    E_0RI = imag(E_0[1])
+    A = E_0RR + E_0FR
+    B = E_0RI - E_0FI
+    return ((0.5*(phi**2)*(A**2 + B**2)) + (0.25*sin(2*phi)*(A**2 - B**2)) 
+        - (0.5*A*B*cos(2*phi)))
 
 """Return an (n_layers x n_wls x n_angles x n_polarizations) list of the
 integral of E^2 in each layer evaluated analytically using the ESqIntegral
 method along with the average of the integral over wavelengths, angles,
 and polarizations.  Use the initial E-field vectors E_i from evalMatrices()"""
 def ESqIntEval(stack, wls, angles, pols, indices, E_i):
-  ESqInt = [[[[ESqIntegral(E_i[i][j][k][l], indices[i][j], 
-      wls[j], stack[i].depth, angles[k], pols[l])
-    for l in range(len(pols))] 
-    for k in range(len(angles))]
-    for j in range(len(wls))]
-    for i in range(len(stack))]
-  ESqIntAvg = [sum(ESqInt[i][j][k][l] 
-    for j in range(len(wls))
-    for k in range(len(angles))
-    for l in range(len(pols)))/(len(wls)*len(angles)*len(pols))
-    for i in range(len(stack))]
-  return (ESqInt, ESqIntAvg)
+    ESqInt = [[[[ESqIntegral(E_i[i][j][k][l], indices[i][j], 
+        wls[j], stack[i].depth, angles[k], pols[l])
+        for l in range(len(pols))] 
+        for k in range(len(angles))]
+        for j in range(len(wls))]
+        for i in range(len(stack))]
+    ESqIntAvg = [sum(ESqInt[i][j][k][l] 
+        for j in range(len(wls))
+        for k in range(len(angles))
+        for l in range(len(pols)))/(len(wls)*len(angles)*len(pols))
+        for i in range(len(stack))]
+    return (ESqInt, ESqIntAvg)
 
 """Plot T and R as a function of angle.
 Averages over wls are n_angles x n_pols"""
 def TRAnglePlot(T,R,wls,angles,save,saveFileName):
-  RsWlAvg = [sum(R[j][k][0] 
-    for j in range(len(wls)))/len(wls)
-    for k in range(len(angles))]
-  RpWlAvg = [sum(R[j][k][1] 
-    for j in range(len(wls)))/len(wls)
-    for k in range(len(angles))]
-  TsWlAvg = [sum(T[j][k][0] 
-    for j in range(len(wls)))/len(wls)
-    for k in range(len(angles))]
-  TpWlAvg = [sum(T[j][k][1] 
-    for j in range(len(wls)))/len(wls)
-    for k in range(len(angles))]
-  anglesdeg = (180/pi)*angles
-  ax = plt.axes()
-  ax.plot(anglesdeg, RsWlAvg, label='R_s')
-  ax.plot(anglesdeg, RpWlAvg, label='R_p')
-  ax.set_xlabel('Incident angle (deg)')
-  ax.legend()
-  if save:
-    plt.savefig('results/{0}/{0}-RAnglePlot.pdf'.format(saveFileName))
-  plt.show()
-  ax = plt.axes()
-  ax.plot(anglesdeg, TsWlAvg, label='T_s')
-  ax.plot(anglesdeg, TpWlAvg, label='T_p')
-  ax.set_xlabel('Incident angle (deg)', fontsize=18)
-  plt.xticks(fontsize=15)
-  plt.yticks(fontsize=15)
-  ax.legend()
-  if save:
-    plt.savefig('results/{0}/{0}-TAnglePlot.pdf'.format(saveFileName))
-  plt.show()
+    RsWlAvg = [sum(R[j][k][0] 
+        for j in range(len(wls)))/len(wls)
+        for k in range(len(angles))]
+    RpWlAvg = [sum(R[j][k][1] 
+        for j in range(len(wls)))/len(wls)
+        for k in range(len(angles))]
+    TsWlAvg = [sum(T[j][k][0] 
+        for j in range(len(wls)))/len(wls)
+        for k in range(len(angles))]
+    TpWlAvg = [sum(T[j][k][1] 
+        for j in range(len(wls)))/len(wls)
+        for k in range(len(angles))]
+    anglesdeg = (180/pi)*angles
+    ax = plt.axes()
+    ax.plot(anglesdeg, RsWlAvg, label='R_s')
+    ax.plot(anglesdeg, RpWlAvg, label='R_p')
+    ax.set_xlabel('Incident angle (deg)')
+    ax.legend()
+    if save:
+        plt.savefig('results/{0}/{0}-RAnglePlot.pdf'.format(saveFileName))
+    plt.show()
+    ax = plt.axes()
+    ax.plot(anglesdeg, TsWlAvg, label='T_s')
+    ax.plot(anglesdeg, TpWlAvg, label='T_p')
+    ax.set_xlabel('Incident angle (deg)', fontsize=18)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    ax.legend()
+    if save:
+        plt.savefig('results/{0}/{0}-TAnglePlot.pdf'.format(saveFileName))
+    plt.show()
 
 """Plot T and R as a function of wavenumber k (in m).
 Averages over angles"""
 def TRSpectrumPlot(T,R,wls,angles,save,saveFileName,tPlot=True,
-  rPlot=True):
-  RsAnglAvg = [sum(R[j][k][0]
-    for k in range(len(angles)))/len(angles)
-    for j in range(len(wls))]
-  RpAnglAvg = [sum(R[j][k][1]
-    for k in range(len(angles)))/len(angles)
-    for j in range(len(wls))]
-  TsAnglAvg = [sum(T[j][k][0]
-    for k in range(len(angles)))/len(angles)
-    for j in range(len(wls))]
-  TpAnglAvg = [sum(T[j][k][1]
-    for k in range(len(angles)))/len(angles)
-    for j in range(len(wls))]
-  RAnglPolAvg = [0.5*(RsAnglAvg[j]+RpAnglAvg[j])
-    for j in range(len(wls))]
-  TAnglPolAvg = [0.5*(TsAnglAvg[j]+TpAnglAvg[j])
-    for j in range(len(wls))]
-  k_0 = (1.0/wls) * (1.0e9) #conversion included from nm -> m
+    rPlot=True):
+    RsAnglAvg = [sum(R[j][k][0]
+        for k in range(len(angles)))/len(angles)
+        for j in range(len(wls))]
+    RpAnglAvg = [sum(R[j][k][1]
+        for k in range(len(angles)))/len(angles)
+        for j in range(len(wls))]
+    TsAnglAvg = [sum(T[j][k][0]
+        for k in range(len(angles)))/len(angles)
+        for j in range(len(wls))]
+    TpAnglAvg = [sum(T[j][k][1]
+        for k in range(len(angles)))/len(angles)
+        for j in range(len(wls))]
+    RAnglPolAvg = [0.5*(RsAnglAvg[j]+RpAnglAvg[j])
+        for j in range(len(wls))]
+    TAnglPolAvg = [0.5*(TsAnglAvg[j]+TpAnglAvg[j])
+        for j in range(len(wls))]
+    k_0 = (1.0/wls) * (1.0e9) #conversion included from nm -> m
 
-  ax = plt.axes()
-  if tPlot:
-    ax.plot(wls, TsAnglAvg, label='T_s')
-    ax.plot(wls, TpAnglAvg, label='T_p')
-    ax.plot(wls, TAnglPolAvg, label='T_avg')
-  if rPlot:
-    ax.plot(wls, RsAnglAvg, label='R_s')
-    ax.plot(wls, RpAnglAvg, label='R_p')
-    ax.plot(wls, RAnglPolAvg, label='R_avg')
-  ax.legend()
-  ax.set_xlabel('Wavelength (nm)', fontsize=18)
-  plt.xticks(fontsize=15)
-  plt.yticks(fontsize=15)
-  if save:
-    plt.savefig('results/{0}/{0}-TRWlsSpectrum.pdf'.format(saveFileName))
-  plt.show()
+    ax = plt.axes()
+    if tPlot:
+        ax.plot(wls, TsAnglAvg, label='T_s')
+        ax.plot(wls, TpAnglAvg, label='T_p')
+        ax.plot(wls, TAnglPolAvg, label='T_avg')
+    if rPlot:
+        ax.plot(wls, RsAnglAvg, label='R_s')
+        ax.plot(wls, RpAnglAvg, label='R_p')
+        ax.plot(wls, RAnglPolAvg, label='R_avg')
+    ax.legend()
+    ax.set_xlabel('Wavelength (nm)', fontsize=18)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    if save:
+        plt.savefig('results/{0}/{0}-TRWlsSpectrum.pdf'.format(saveFileName))
+    plt.show()
 
-  ax = plt.axes()
-  if tPlot:
-    ax.plot(0.01*k_0, TsAnglAvg, label='T_s')
-    ax.plot(0.01*k_0, TpAnglAvg, label='T_p')
-    ax.plot(0.01*k_0, TAnglPolAvg, label='T_avg')
-  if rPlot:
-    ax.plot(0.01*k_0, RsAnglAvg, label='R_s')
-    ax.plot(0.01*k_0, RpAnglAvg, label='R_p')
-    ax.plot(0.01*k_0, RAnglPolAvg, label='R_avg')
-  ax.legend(loc='upper left')
-  ax.set_xlabel('k (cm^-1)', fontsize=18)
-  ax.set_ylim([0.0,1.0])
-  plt.xticks(fontsize=15)
-  plt.yticks(fontsize=15)
-  if save:
-    plt.savefig('results/{0}/{0}-TRWaveNumsSpectrum.pdf'.format(saveFileName))
-  plt.show()
+    ax = plt.axes()
+    if tPlot:
+        ax.plot(0.01*k_0, TsAnglAvg, label='T_s')
+        ax.plot(0.01*k_0, TpAnglAvg, label='T_p')
+        ax.plot(0.01*k_0, TAnglPolAvg, label='T_avg')
+    if rPlot:
+        ax.plot(0.01*k_0, RsAnglAvg, label='R_s')
+        ax.plot(0.01*k_0, RpAnglAvg, label='R_p')
+        ax.plot(0.01*k_0, RAnglPolAvg, label='R_avg')
+    ax.legend(loc='upper left')
+    ax.set_xlabel('k (cm^-1)', fontsize=18)
+    ax.set_ylim([0.0,1.0])
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    if save:
+        plt.savefig('results/{0}/{0}-TRWaveNumsSpectrum.pdf'.format(saveFileName))
+    plt.show()
 
-  return (k_0, RAnglPolAvg, TAnglPolAvg)
+    return (k_0, RAnglPolAvg, TAnglPolAvg)
 
 """Plot spectrum of the E^2 integral"""
 def ESqIntSpectrumPlot(ESqInt, stack, wls, angles, pols, indices, save, saveFileName):
-  ax = plt.axes()
+    ax = plt.axes()
 
-  wnums = (1.0e7/wls) #wavenumbers in cm^-1 to be used in plotting
+    wnums = (1.0e7/wls) #wavenumbers in cm^-1 to be used in plotting
 
-  for i in range(len(stack)):
-    if stack[i].active:
-      ESqIntWls = [sum(ESqInt[i][j][k][l] 
-        for k in range(len(angles))
-        for l in range(len(pols)))/(len(angles)*len(pols))
-        for j in range(len(wls))]
-      ax.plot(wnums, ESqIntWls, label=stack[i].name)
+    for i in range(len(stack)):
+        if stack[i].active:
+            ESqIntWls = [sum(ESqInt[i][j][k][l] 
+                for k in range(len(angles))
+                for l in range(len(pols)))/(len(angles)*len(pols))
+                for j in range(len(wls))]
+            ax.plot(wnums, ESqIntWls, label=stack[i].name)
 
-  ax.legend()
-  ax.set_xlabel('Wavenumber (cm$^-1$)', fontsize=18)
-  ax.set_ylabel('$E^2$ integral (arb. units)', fontsize=18)
-  plt.xticks(fontsize=15)
-  plt.yticks(fontsize=15)
-  if save:
-    plt.savefig('results/{0}/{0}-ESqIntSpectrum.pdf'.format(saveFileName))
-  plt.show()
+    ax.legend()
+    ax.set_xlabel('Wavenumber (cm$^-1$)', fontsize=18)
+    ax.set_ylabel('$E^2$ integral (arb. units)', fontsize=18)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    if save:
+        plt.savefig('results/{0}/{0}-ESqIntSpectrum.pdf'.format(saveFileName))
+    plt.show()
 
 """Plot E^2 throughout the device"""
 def ESqPlot(E_i, stack, wls, angles, pol, indices, save, saveFileName, pointsPerLayer = 500):
-  #Evaluate E^2 across each layer
-  #ESqVals is (n_layers x n_wls x n_angles x n_pols x n_pointsPerLayer)
-  #xPoints is (n_layers x n_PointsPerLayer)
-  #stackXPos is n_layers - start position of each layer
-  #phasePoints is n_layers x n_wls x n_angles x n_pointsPerLayer
-  stackXPos = [0.0]+[sum([stack[index].depth 
-    for index in range(i)])
-    for i in range(1, len(stack))]
-  xPoints = [[stackXPos[i] + stack[i].depth*l
-    for l in linspace(0,1.0,pointsPerLayer)]
-    for i in range(len(stack))]
-  xEvalPoints = [[stack[i].depth*l
-    for l in linspace(0,1.0,pointsPerLayer)]
-    for i in range(len(stack))]
-  ESq = [[[[[ESqEval(E_i[i][j][k][l],indices[i][j],wls[j],xEvalPoints[i][n],angles[k], pol[l])
-    for n in range(pointsPerLayer)] 
-    for l in range(len(pol))]
-    for k in range(len(angles))]
-    for j in range(len(wls))]
-    for i in range(len(stack))]
-  ESqAvg = [[sum(ESq[i][j][k][l][n]
-    for j in range(len(wls))
-    for k in range(len(angles))
-    for l in range(len(pol)))/(len(pol)*len(angles)*len(wls))
-    for n in range(pointsPerLayer)]
-    for i in range(len(stack))]
-  ax = plt.axes()
-  for i in range(len(stack)):
-    ax.plot(xPoints[i],ESqAvg[i],label=stack[i].name)
-    ax.legend()
-  if save:
-    plt.savefig('results/{0}/{0}-ESqPlot.pdf'.format(saveFileName))
-  ax.set_xlabel('x-position (nm)', fontsize=18)
-  ax.set_ylabel('E^2 (arbitrary units)', fontsize=18)
-  plt.xticks(fontsize=15)
-  plt.yticks(fontsize=15)
-  ax.grid(True)
-  plt.show()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    #Evaluate E^2 across each layer
+    #ESqVals is (n_layers x n_wls x n_angles x n_pols x n_pointsPerLayer)
+    #xPoints is (n_layers x n_PointsPerLayer)
+    #stackXPos is n_layers - start position of each layer
+    #phasePoints is n_layers x n_wls x n_angles x n_pointsPerLayer
+    stackXPos = [0.0]+[sum([stack[index].depth 
+        for index in range(i)])
+        for i in range(1, len(stack))]
+    xPoints = [[stackXPos[i] + stack[i].depth*l
+        for l in linspace(0,1.0,pointsPerLayer)]
+        for i in range(len(stack))]
+    xEvalPoints = [[stack[i].depth*l
+        for l in linspace(0,1.0,pointsPerLayer)]
+        for i in range(len(stack))]
+    ESq = [[[[[ESqEval(E_i[i][j][k][l],indices[i][j],wls[j],xEvalPoints[i][n],angles[k], pol[l])
+        for n in range(pointsPerLayer)] 
+        for l in range(len(pol))]
+        for k in range(len(angles))]
+        for j in range(len(wls))]
+        for i in range(len(stack))]
+    ESqAvg = [[sum(ESq[i][j][k][l][n]
+        for j in range(len(wls))
+        for k in range(len(angles))
+        for l in range(len(pol)))/(len(pol)*len(angles)*len(wls))
+        for n in range(pointsPerLayer)]
+        for i in range(len(stack))]
+    ax = plt.axes()
+    for i in range(len(stack)):
+        ax.plot(xPoints[i],ESqAvg[i],label=stack[i].name)
+        ax.legend()
+    if save:
+        plt.savefig('results/{0}/{0}-ESqPlot.pdf'.format(saveFileName))
+    ax.set_xlabel('x-position (nm)', fontsize=18)
+    ax.set_ylabel('E^2 (arbitrary units)', fontsize=18)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    ax.grid(True)
+    plt.show()
 
 
 if __name__ == "__main__":
-main()
+    main()

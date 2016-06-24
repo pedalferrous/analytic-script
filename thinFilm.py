@@ -605,6 +605,7 @@ def ESqIntSpectrumPlot(ESqInt, stack, wls, angles, pols, indices, save, saveFile
   ax = plt.axes()
 
   wnums = (1.0e7/wls) #wavenumbers in cm^-1 to be used in plotting
+  print "hello"
 
   for i in range(len(stack)):
     if stack[i].active:
