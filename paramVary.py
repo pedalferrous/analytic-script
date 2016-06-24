@@ -100,7 +100,7 @@ def paramSweep(wls, angles, n_i, n_f, pols, stackTemplate,
   ax.set_xlabel(stack[paramFilmNo].name+' layer '+paramType,fontsize=18)
   ax.set_ylabel('CQD layer $E^2$ integral (arbitrary units)',fontsize=18)
   ax.grid(True)
-  plt.xticks(fontsize=15)
+  plt.xticks(fontsize=15)layer
   plt.yticks(fontsize=15)
   if save:
     plt.savefig(saveFileName)

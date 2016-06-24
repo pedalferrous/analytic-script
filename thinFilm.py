@@ -1,5 +1,6 @@
 from numpy import *
 from collections import *
+from itertools import chain
 import matplotlib.pyplot as plt
 import scipy.integrate as integrate
 import os
@@ -256,7 +257,7 @@ def genMatrices(stack, wls, angles, n_i, n_f, indices, t_angles):
   #t_angles is an (n_layers+1 x n_wavelengths x n_angles) matrix
   t_angles = snell(indices, angles, n_i, n_f)
   """
-  #generate the I matrices (n_layers+1 x n_wls x n_angles x 2)
+  # generate the I matrices (n_layers+1 x n_wls x n_angles x 2)
   for i in range(len(stack)+1):
     I.append([])
     for j in range(len(wls)):
@@ -275,6 +276,17 @@ def genMatrices(stack, wls, angles, n_i, n_f, indices, t_angles):
           else:
             I[i][j][k].append(IMatrix(indices[i-1][j], indices[i][j], 
               t_angles[i-1][j][k], t_angles[i][j][k], l))
+  
+  # I = [[[[
+  #   IMatrix(n_i, indices[i][j], angles[k], t_angles[i][j][k], l) if i == 0
+  #   else IMatrix(indices[i-1][j], n_f, t_angles[i-1][j][k], t_angles[i][j][k], l) if i == len(stack)
+  #   else IMatrix(indices[i-1][j], indices[i][j], t_angles[i-1][j][k], t_angles[i][j][k], l)
+  #   for l in [0,1]] 
+  #   for k in range(len(angles))] 
+  #   for j in range(len(wls))] 
+  #   for i in range(len(stack)+1)]
+
+
   #generate the P matrices (n_layers x n_wls x n_angles)
   P = [[[PMatrix(indices[i][j], wls[j], stack[i].depth, t_angles[i][j][k]) 
     for k in range(len(angles))] 
@@ -310,48 +322,97 @@ of E^2 in each layer.  Average over all given parameters (wavelengths,
 angles, polarizations [expected to be a list of the form [0] or [0,1] where
 0 is normal to the plane of incidence and 1 is parallel to the plane of 
 incidence])."""
+
+def matrixCreate(startLayer, endLayer, pol, angle, wLength, P, I):
+    M_partial = identity(2)
+    for index in range(startLayer, endLayer):
+        M_partial = dot(M_partial,dot(P[index][wLength][angle], I[index+1][wLength][angle][pol]))
+    return M_partial
+
 def evalMatrices(stack, wls, angles, pol, n_i, n_f, indices, t_angles, P, I,
   addBulkT=False):
   #Evaluate the M matrix for each layer - eg E_i[i] = M[i]E_f where
   #E_i[i] is the E-field vector after transmission into layer i but
   #before propagation.
   #M indexed by layer, wavelength, angle, polarization.
-  M = []
-  for i in range(len(stack)):
-    M.append([])
-    for j in range(len(wls)):
-      M[i].append([])
-      for k in range(len(angles)):
-        M[i][j].append([])
-        for l in range(len(pol)):
-          M_partial = array([[1,0],[0,1]])
-          # why is this
-          for index in range(i, len(stack)):
-            M_partial = dot(M_partial,dot(P[index][j][k], I[index+1][j][k][l]))
-          M[i][j][k].append(M_partial)
+
+
+
+  # M = []
+  # for i in range(len(stack)):
+  #   M.append([])
+  #   for j in range(len(wls)):
+  #     M[i].append([])
+  #     for k in range(len(angles)):
+  #       M[i][j].append([])
+  #       for l in range(len(pol)):
+  #         M_partial = array([[1,0],[0,1]])
+  #         # indicates propagation from i_th layer to terminal layer 
+  #         # (excluding initial)
+  #         for index in range(i, len(stack)):
+  #           M_partial = dot(M_partial,dot(P[index][j][k], I[index+1][j][k][l]))
+  #         M[i][j][k].append(M_partial)
+  # #Calculate the total E_f and E_r for the stack using M_0
+  # M_0 = [[[dot(I[0][j][k][l], M[0][j][k][l]) 
+  #   for l in range(len(pol))] 
+  #   for k in range(len(angles))] 
+  #   for j in range(len(wls))]
+  # #E_0 is the E-field vector before transmission into the first layer
+  # # indicating no reverse incident wave (i.e. from the right)
+  # # this operation yields non normalized pre-boundary field
+  # E_0_noNorm = [[[dot(M_0[j][k][l],array([1,0])) 
+  #   for l in range(len(pol))] 
+  #   for k in range(len(angles))] 
+  #   for j in range(len(wls))]
+
+  # E_0 = [[[array([1.0, E_0_noNorm[j][k][l][1]/E_0_noNorm[j][k][l][0]]) 
+  #   for l in range(len(pol))] 
+  #   for k in range(len(angles))] 
+  #   for j in range(len(wls))]
+  # # representative of final E field, now normalized akin to incident E field
+  # # solely forward propagating
+  # E_f = [[[array([1.0/E_0_noNorm[j][k][l][0],0.0])
+  #   for l in range(len(pol))]
+  #   for k in range(len(angles))] 
+  #   for j in range(len(wls))]
+  # E_i = [[[[dot(M[i][j][k][l], E_f[j][k][l])
+  #   for l in range(len(pol))] 
+  #   for k in range(len(angles))]
+  #   for j in range(len(wls))]
+  #   for i in range(len(stack))]
+
+  M = [[[[
+      matrixCreate(i, len(stack),l, k, j, P, I)
+      for l in range(len(pol))] 
+      for k in range(len(angles))] 
+      for j in range(len(wls))] 
+      for i in range(len(stack))]
+  
   #Calculate the total E_f and E_r for the stack using M_0
   M_0 = [[[dot(I[0][j][k][l], M[0][j][k][l]) 
-    for l in range(len(pol))] 
-    for k in range(len(angles))] 
-    for j in range(len(wls))]
-  #E_0 is the E-field vector before transmission into the first layer
-  E_0_noNorm = [[[dot(M_0[j][k][l],array([1,0])) 
-    for l in range(len(pol))] 
-    for k in range(len(angles))] 
-    for j in range(len(wls))]
-  E_0 = [[[array([1.0, E_0_noNorm[j][k][l][1]/E_0_noNorm[j][k][l][0]]) 
-    for l in range(len(pol))] 
-    for k in range(len(angles))] 
-    for j in range(len(wls))]
-  E_f = [[[array([1.0/E_0_noNorm[j][k][l][0],0.0])
-    for l in range(len(pol))]
-    for k in range(len(angles))] 
-    for j in range(len(wls))]
+      for l in range(len(pol))] 
+      for k in range(len(angles))] 
+      for j in range(len(wls))]
+
+  # incident and reflected
+  E_0 = [[[(1/(dot(M_0[j][k][l],array([1,0]))[0]))*dot(M_0[j][k][l],array([1,0])) 
+      for l in range(len(pol))] 
+      for k in range(len(angles))] 
+      for j in range(len(wls))]
+
+  # exiting field
+  E_f = [[[1/(dot(M_0[j][k][l],array([1,0]))[0])*array([1.0,0.0])
+      for l in range(len(pol))]
+      for k in range(len(angles))] 
+      for j in range(len(wls))]
+
+  # field as indexed by layer, back-extrapolating from exiting field
   E_i = [[[[dot(M[i][j][k][l], E_f[j][k][l])
-    for l in range(len(pol))] 
-    for k in range(len(angles))]
-    for j in range(len(wls))]
-    for i in range(len(stack))]
+      for l in range(len(pol))] 
+      for k in range(len(angles))]
+      for j in range(len(wls))]
+      for i in range(len(stack))]
+
   #overall transmittance, reflectance coefficients (following Hecht)
   #there is also the option to add a bulk transmission coefficient
   #for a thick substrate (if addBulkT = True).  In this case the bulk
@@ -374,11 +435,13 @@ def evalMatrices(stack, wls, angles, pol, n_i, n_f, indices, t_angles, P, I,
     for l in range(len(pol))]
     for k in range(len(angles))]
     for j in range(len(wls))]
-  TAvg = (sum(T[j][k][l]
-    for l in range(len(pol))
-    for k in range(len(angles))
-    for j in range(len(wls)))
-    /(len(pol)*len(angles)*len(wls)))
+
+  TAvg = mean(list(chain.from_iterable(chain.from_iterable(T))))
+  # TAvg = (sum(T[j][k][l]
+  #   for l in range(len(pol))
+  #   for k in range(len(angles))
+  #   for j in range(len(wls)))
+  #   /(len(pol)*len(angles)*len(wls)))
   RAvg = (sum(R[j][k][l]
     for l in range(len(pol))
     for k in range(len(angles))
