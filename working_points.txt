@@ -1,0 +1,7 @@
+Things to be Addressed:
+
+(1) What is the method by which the spectrum plots interpolate data points? Where is this data coming from?
+
+(2) Massive inefficiency in plotting seems to arise with the substitution of a linspace element versus a standard array (barring, of course, the need for map functions in the plotting methods associated with this).
+
+(3) Snell's law as currently formulated is not valid for dispersive materials.

@@ -51,9 +51,13 @@ def main():
     """ENTER INCIDENT LIGHT PARAMS AND ENVIRONMENT INDICES HERE"""
 
     # measurements in nm
+    # note that use of linespace is required currently for spectrum plots
+    # this can be circumvented.
+    # wls = linspace(2000, 3000, 4000)
     wls = [4000]
     # currently unnacepting of multiple angles
-    angles = (pi/180)*array([0.0])
+    # angle represents CCW rotation from direction of propagation
+    angles = (pi/180)*array([30.0])
     #pols: 0 is s- [normal to plane of incidence], 1 is p- [parallel]
     pols = [0,1]
     #incident and final indices (currently free space)
@@ -73,9 +77,9 @@ def main():
     """ENTER MAIN STACK HERE"""
 
     stack = [
-            film(3500, 1.0, '1.0', False),
-            film(10000, 0.5+0.01j, '0.5', False),
-            film(3000, 0.8, '1', False)
+            film(3500, 2.0, '1.0', True),
+            film(10000, 4.0, '0.5', True),
+            film(3000, 2.0, '0.8', True)
             ]
 
     ###########################################################
@@ -129,9 +133,11 @@ def main():
     if plotTRangle:
         TRAnglePlot(T,R,wls,angles,save,saveFileName)
 
+    # do not use with standard list wls
     if plotTRspectrum:
         TRSpectrumPlot(T,R,wls,angles,save,saveFileName)
 
+    # do not use with standard list wls
     if evalESQint:
         (ESqInt,ESqIntAvg) = ESqIntEval(stack,wls,angles,pols,indices,E_i)
 
@@ -230,7 +236,9 @@ def snell(indices, angles, n_i, n_f):
                 else:
                     t_angles[i][j][k] = arcsin(indices[i-1][j]*sin(
                         t_angles[i-1][j][k])/indices[i][j])
+    print t_angles
     return t_angles
+
 
 """Returns 4D lists of P and I matrices indexed by (layer number, wavelength, 
 incidence angle, polarization [for I matrices]).  
@@ -406,7 +414,7 @@ def zeroKESqIntegral(E_0, n, wl, d, theta):
 """Return an (n_layers x n_wls x n_angles x n_polarizations) list of the
 integral of E^2 in each layer evaluated analytically using the ESqIntegral
 method along with the average of the integral over wavelengths, angles,
-and polarizations.  Use the initial E-field vectors E_i from evalMatrices()"""
+and polarizations.  Use the initial E-field vectors E_i from evalField()"""
 def ESqIntEval(stack, wls, angles, pols, indices, E_i):
     ESqInt = [[[[ESqIntegral(E_i[i][j][k][l], indices[i][j], 
         wls[j], stack[i].depth, angles[k], pols[l])
@@ -476,7 +484,7 @@ def TRSpectrumPlot(T,R,wls,angles,save,saveFileName,tPlot=True,
         for j in range(len(wls))]
     TAnglPolAvg = [0.5*(TsAnglAvg[j]+TpAnglAvg[j])
         for j in range(len(wls))]
-    k_0 = (1.0/wls) * (1.0e9) #conversion included from nm -> m
+    k_0 = 1.0e9/wls #conversion included from nm -> m
 
     ax = plt.axes()
     if tPlot:
@@ -520,7 +528,8 @@ def ESqIntSpectrumPlot(ESqInt, stack, wls, angles, pols, indices, save, saveFile
     ax = plt.axes()
 
     wnums = (1.0e7/wls) #wavenumbers in cm^-1 to be used in plotting
-
+    # wnums = map(lambda x: 1.0e7/x, wls) # with no linspace property
+    print wnums
     for i in range(len(stack)):
         if stack[i].active:
             ESqIntWls = [sum(ESqInt[i][j][k][l] 

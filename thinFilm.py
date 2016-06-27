@@ -47,7 +47,7 @@ def main():
   plotTRspectrum = False
 
   #option to evaluate E^2 integral in active layer and plot spectrum
-  evalESQint = False
+  evalESQint = True
   #option to plot E^2 throughout structure
   plotESQ = True
 
@@ -55,8 +55,8 @@ def main():
   # ENTER INCIDENT LIGHT PARAMS AND ENVIRONMENT INDICES HERE
   ###################################################################
 
-  #wls = linspace(1000, 7000, 1000) #wavelengths (nm)
-  wls = [4000] #nm
+  wls = linspace(1000, 7000, 1000) #wavelengths (nm)
+  #wls = [4000] #nm
   angles = (pi/180)*array([0.0])
   #angles = (pi/180)*linspace(0,40,10)
   #pols: 0 is s- [normal to plane of incidence], 1 is p- [parallel]
@@ -604,8 +604,8 @@ def TRSpectrumPlot(T,R,wls,angles,save,saveFileName,tPlot=True,
 def ESqIntSpectrumPlot(ESqInt, stack, wls, angles, pols, indices, save, saveFileName):
   ax = plt.axes()
 
-  wnums = (1.0e7/wls) #wavenumbers in cm^-1 to be used in plotting
-  print "hello"
+  #wnums = (1.0e7/wls) # wavenumbers in cm^-1 to be used in plotting
+  wnums = map(lambda x: 1.0e7/x, wls)
 
   for i in range(len(stack)):
     if stack[i].active:
