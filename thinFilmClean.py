@@ -99,14 +99,6 @@ def main():
     # traversal over films, wavelength, and (of course) angle
     t_angles = snell(indices, angles, n_i, n_f)
     (I,P) = genMatrices(stack, wls, angles, n_i, n_f, indices, t_angles)
-
-    """
-        __  ____  ______________   __  _________________  ______  ____
-       / / / / / / / ____/ ____/  /  |/  / ____/_  __/ / / / __ \/ __ \
-      / /_/ / / / / / __/ __/    / /|_/ / __/   / / / /_/ / / / / / / /
-     / __  / /_/ / /_/ / /___   / /  / / /___  / / / __  / /_/ / /_/ /
-    /_/ /_/\____/\____/_____/  /_/  /_/_____/ /_/ /_/ /_/\____/_____/
-    """
     
     """The goal of this method is to break it up into two or more blocks
     of return. Namely, that it calculate T and R deriavtes separately from
