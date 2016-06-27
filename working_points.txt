@@ -1,7 +1,7 @@
 Things to be Addressed:
 
-(1) What is the method by which the spectrum plots interpolate data points? Where is this data coming from?
+(1) Weighting of incident radiation wavelength according to blackbody et al. spectra.
 
-(2) Massive inefficiency in plotting seems to arise with the substitution of a linspace element versus a standard array (barring, of course, the need for map functions in the plotting methods associated with this).
+(2) Automated optimization - use of cluster computing to continually adjust layer parameters under some decently intelligent heuristic
 
-(3) Snell's law as currently formulated is not valid for dispersive materials.
+(3) Incorporating multiple angles of incidence (possibly weighted) and verifying proper results. Accounting for total internal reflection as well as extension of Snell's law to complex indices of refraction (there are methods available that are valid in the small-conductivity limit, but beyond that it seems as if people are having little luck). 

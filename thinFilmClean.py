@@ -53,11 +53,11 @@ def main():
     # measurements in nm
     # note that use of linespace is required currently for spectrum plots
     # this can be circumvented.
-    # wls = linspace(2000, 3000, 4000)
-    wls = [4000]
+    wls = linspace(1000,4000)
+    # wls = [4000]
     # currently unnacepting of multiple angles
     # angle represents CCW rotation from direction of propagation
-    angles = (pi/180)*array([30.0])
+    angles = (pi/180)*array([10.0])
     #pols: 0 is s- [normal to plane of incidence], 1 is p- [parallel]
     pols = [0,1]
     #incident and final indices (currently free space)
@@ -78,8 +78,8 @@ def main():
 
     stack = [
             film(3500, 2.0, '1.0', True),
-            film(10000, 4.0, '0.5', True),
-            film(3000, 2.0, '0.8', True)
+            film(10000, 3.0, '0.5', True),
+            film(3000, 4.0, '0.8', True)
             ]
 
     ###########################################################
@@ -230,13 +230,18 @@ def snell(indices, angles, n_i, n_f):
                 t_angles[i][j].append([])
                 if (i == 0):
                     t_angles[i][j][k] = arcsin(n_i*sin(angles[k])/indices[i][j])
+                    print "Initial to first layer: " + str(n_i) + " to " + str(indices[i][j])
+                    print "incident: " + str(180/pi*angles[k]) + " refracted: " + str(180/pi*t_angles[i][j][k])
                 elif (i == len(indices)):
                     t_angles[i][j][k] = arcsin(indices[i-1][j]*sin(
                         t_angles[i-1][j][k])/n_f)
+                    print "Interior to final layer: " + str(indices[i-1][j]) + " to " + str(n_f)
+                    print "incident: " + str(180/pi*t_angles[i-1][j][k]) + " refracted: inconsequential" 
                 else:
                     t_angles[i][j][k] = arcsin(indices[i-1][j]*sin(
                         t_angles[i-1][j][k])/indices[i][j])
-    print t_angles
+                    print "Interior to interior: " + str(indices[i-1][j]) + " to " + str(indices[i][j])
+                    print "incident: " + str(180/pi*t_angles[i-1][j][k]) + " refracted: " + str(180/pi*t_angles[i][j][k])
     return t_angles
 
 
@@ -289,7 +294,7 @@ def IMatrix(n_1, n_2, theta_1, theta_2, pol):
 """method to compute matrices for transmission through layers
 (addition of a phase from propagation)"""
 def PMatrix(n, wl, d, theta): 
-    delta = (2*pi*n*d*cos(theta))/(wl)
+    delta = (2*pi*d*n*cos(theta))/(wl)
     return array([[exp((-1j)*delta),0],[0,exp(1j*delta)]])
 
 """Given the modeling parameters and the transmission matrices generate
@@ -310,6 +315,7 @@ def evalField(stack, wls, angles, pol, n_i, n_f, indices, t_angles, P, I):
         for i in range(len(stack)+1)]
     
     #Calculate the total E_f and E_r for the stack using M_0
+    # currently set up backwards, seemingly according to literature
     M_0 = [[[dot(I[0][j][k][l], M[0][j][k][l]) 
         for l in range(len(pol))] 
         for k in range(len(angles))] 
@@ -339,7 +345,8 @@ def evalField(stack, wls, angles, pol, n_i, n_f, indices, t_angles, P, I):
 def matrixCreate(startLayer, endLayer, pol, angle, wLength, P, I):
     M_partial = identity(2)
     for index in range(startLayer, endLayer):
-        M_partial = dot(M_partial,dot(P[index][wLength][angle], I[index+1][wLength][angle][pol]))
+        # M_partial = dot(M_partial,dot(P[index][wLength][angle], I[index+1][wLength][angle][pol]))
+        M_partial = dot(M_partial,dot(I[index+1][wLength][angle][pol]), )
     return M_partial
 
 def evalTR(stack, E_f, E_0, angles, n_i, n_f, t_angles, addBulkT=False):

@@ -338,48 +338,48 @@ def evalMatrices(stack, wls, angles, pol, n_i, n_f, indices, t_angles, P, I,
 
 
 
-  # M = []
-  # for i in range(len(stack)):
-  #   M.append([])
-  #   for j in range(len(wls)):
-  #     M[i].append([])
-  #     for k in range(len(angles)):
-  #       M[i][j].append([])
-  #       for l in range(len(pol)):
-  #         M_partial = array([[1,0],[0,1]])
-  #         # indicates propagation from i_th layer to terminal layer 
-  #         # (excluding initial)
-  #         for index in range(i, len(stack)):
-  #           M_partial = dot(M_partial,dot(P[index][j][k], I[index+1][j][k][l]))
-  #         M[i][j][k].append(M_partial)
-  # #Calculate the total E_f and E_r for the stack using M_0
-  # M_0 = [[[dot(I[0][j][k][l], M[0][j][k][l]) 
-  #   for l in range(len(pol))] 
-  #   for k in range(len(angles))] 
-  #   for j in range(len(wls))]
-  # #E_0 is the E-field vector before transmission into the first layer
-  # # indicating no reverse incident wave (i.e. from the right)
-  # # this operation yields non normalized pre-boundary field
-  # E_0_noNorm = [[[dot(M_0[j][k][l],array([1,0])) 
-  #   for l in range(len(pol))] 
-  #   for k in range(len(angles))] 
-  #   for j in range(len(wls))]
+  M = []
+  for i in range(len(stack)):
+    M.append([])
+    for j in range(len(wls)):
+      M[i].append([])
+      for k in range(len(angles)):
+        M[i][j].append([])
+        for l in range(len(pol)):
+          M_partial = array([[1,0],[0,1]])
+          # indicates propagation from i_th layer to terminal layer 
+          # (excluding initial)
+          for index in range(i, len(stack)):
+            M_partial = dot(M_partial,dot(P[index][j][k], I[index+1][j][k][l]))
+          M[i][j][k].append(M_partial)
+  #Calculate the total E_f and E_r for the stack using M_0
+  M_0 = [[[dot(I[0][j][k][l], M[0][j][k][l]) 
+    for l in range(len(pol))] 
+    for k in range(len(angles))] 
+    for j in range(len(wls))]
+  #E_0 is the E-field vector before transmission into the first layer
+  # indicating no reverse incident wave (i.e. from the right)
+  # this operation yields non normalized pre-boundary field
+  E_0_noNorm = [[[dot(M_0[j][k][l],array([1,0])) 
+    for l in range(len(pol))] 
+    for k in range(len(angles))] 
+    for j in range(len(wls))]
 
-  # E_0 = [[[array([1.0, E_0_noNorm[j][k][l][1]/E_0_noNorm[j][k][l][0]]) 
-  #   for l in range(len(pol))] 
-  #   for k in range(len(angles))] 
-  #   for j in range(len(wls))]
-  # # representative of final E field, now normalized akin to incident E field
-  # # solely forward propagating
-  # E_f = [[[array([1.0/E_0_noNorm[j][k][l][0],0.0])
-  #   for l in range(len(pol))]
-  #   for k in range(len(angles))] 
-  #   for j in range(len(wls))]
-  # E_i = [[[[dot(M[i][j][k][l], E_f[j][k][l])
-  #   for l in range(len(pol))] 
-  #   for k in range(len(angles))]
-  #   for j in range(len(wls))]
-  #   for i in range(len(stack))]
+  E_0 = [[[array([1.0, E_0_noNorm[j][k][l][1]/E_0_noNorm[j][k][l][0]]) 
+    for l in range(len(pol))] 
+    for k in range(len(angles))] 
+    for j in range(len(wls))]
+  # representative of final E field, now normalized akin to incident E field
+  # solely forward propagating
+  E_f = [[[array([1.0/E_0_noNorm[j][k][l][0],0.0])
+    for l in range(len(pol))]
+    for k in range(len(angles))] 
+    for j in range(len(wls))]
+  E_i = [[[[dot(M[i][j][k][l], E_f[j][k][l])
+    for l in range(len(pol))] 
+    for k in range(len(angles))]
+    for j in range(len(wls))]
+    for i in range(len(stack))]
 
   M = [[[[
       matrixCreate(i, len(stack),l, k, j, P, I)
