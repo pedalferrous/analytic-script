@@ -4,4 +4,8 @@ Things to be Addressed:
 
 (2) Automated optimization - use of cluster computing to continually adjust layer parameters under some decently intelligent heuristic
 
+	(2) a: Optimization is now contained in file autoOptimize.py, which ports information in and from of thinFilmClean.py. Currently optimization is not occurring, rather the code searches through space of interest, according to set material limitations (min_depth, max_depth, discrete_depth).
+
+	(2) b: autoOptimize.py will either populate given space, and search through said space with an as of yet determined search protocol (BFS, A*, etc). Population of space may also occur with heuristic, when structure of space has been further studied (e.g. degeneracies given multiples of specific thicknesses, insensitivity to depth increase of terminal layer)
+
 (3) Incorporating multiple angles of incidence (possibly weighted) and verifying proper results. Accounting for total internal reflection as well as extension of Snell's law to complex indices of refraction (there are methods available that are valid in the small-conductivity limit, but beyond that it seems as if people are having little luck). 

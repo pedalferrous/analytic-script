@@ -24,6 +24,9 @@ from scipy.interpolate import interp1d
 # active indicates whether (whether integrated E^2 is calculated
 film = namedtuple('layer',['depth','index','name','active'])
 
+peakWavelength = 4000
+blackbody = True
+
 ###########################################################
 # Main loop
 ###########################################################
@@ -44,7 +47,7 @@ def main():
     plotTRspectrum = False
 
     #option to evaluate E^2 integral in active layer and plot spectrum
-    evalESQint = False
+    evalESQint = True
     #option to plot E^2 throughout structure
     plotESQ = True
 
@@ -53,15 +56,15 @@ def main():
     # measurements in nm
     # note that use of linespace is required currently for spectrum plots
     # this can be circumvented.
-    wls = linspace(1000,4000)
-    # wls = [4000]
-    # currently unnacepting of multiple angles
+    wls = linspace(1000, 10000, 500)
+    # wls = linspace(4000, 4000, 1)
+    # currently unnacepting of angle variation
     # angle represents CCW rotation from direction of propagation
-    angles = (pi/180)*array([10.0])
+    angles = (pi/180)*array([0.0])
     #pols: 0 is s- [normal to plane of incidence], 1 is p- [parallel]
     pols = [0,1]
     #incident and final indices (currently free space)
-    n_i = 1.0
+    n_i = 3.43
     n_f = 1.0
 
     """ENTER STACK AND MATERIAL PROPERTIES HERE"""
@@ -77,10 +80,20 @@ def main():
     """ENTER MAIN STACK HERE"""
 
     stack = [
-            film(3500, 2.0, '1.0', True),
-            film(10000, 3.0, '0.5', True),
-            film(3000, 4.0, '0.8', True)
+            film(95, 1.399, 'SiO2', True),
+            film(130, itoDrudeParams, 'ITO', True),
+            film(640, 2.4 + 0.106j, 'CQD', True),
+            film(200, 'au', 'Gold', True)
             ]
+    # Average E^2 integral in active layer (CQD): [82.01202593364928, 245.38468092862215, 3504.612761494427, 0.9749937541718504]
+
+    # stack = [
+    #         film(745, 1.399, 'SiO2', True),
+    #         film(10, itoDrudeParams, 'ITO', True),
+    #         film(410, 2.4 + 0.106j, 'CQD', True),
+    #         film(50, 'au', 'Gold', True)
+    #         ]
+    # Average E^2 integral in active layer (CQD): [4477.880418884087, 122.29409960678106, 2790.1956874447324, 1.6006346413216146]
 
     ###########################################################
     # Main processes and evaluation
@@ -108,9 +121,6 @@ def main():
     of return. Namely, that it calculate T and R deriavtes separately from
     E_i, which is arguably important enough in its own right.
     """
-
-    # (T,R,TAvg,RAvg,E_i) = evalMatrices(stack, wls, angles, pols,
-    # n_i, n_f, indices, t_angles, P, I, addBulkT=True)
 
     # field calculations
     (E_0, E_f, E_i) = evalField(stack, wls, angles, pols,
@@ -153,6 +163,7 @@ def main():
 
     if plotESQ:  
         ESqPlot(E_i, stack, wls, angles, pols, indices, save, saveFileName)
+
 
 
 """Look up the index of refraction for a given wavelength reference file.
@@ -230,20 +241,19 @@ def snell(indices, angles, n_i, n_f):
                 t_angles[i][j].append([])
                 if (i == 0):
                     t_angles[i][j][k] = arcsin(n_i*sin(angles[k])/indices[i][j])
-                    print "Initial to first layer: " + str(n_i) + " to " + str(indices[i][j])
-                    print "incident: " + str(180/pi*angles[k]) + " refracted: " + str(180/pi*t_angles[i][j][k])
+                    # print "Initial to first layer: " + str(n_i) + " to " + str(indices[i][j])
+                    # print "incident: " + str(180/pi*angles[k]) + " refracted: " + str(180/pi*t_angles[i][j][k])
                 elif (i == len(indices)):
                     t_angles[i][j][k] = arcsin(indices[i-1][j]*sin(
                         t_angles[i-1][j][k])/n_f)
-                    print "Interior to final layer: " + str(indices[i-1][j]) + " to " + str(n_f)
-                    print "incident: " + str(180/pi*t_angles[i-1][j][k]) + " refracted: inconsequential" 
+                    # print "Interior to final layer: " + str(indices[i-1][j]) + " to " + str(n_f)
+                    # print "incident: " + str(180/pi*t_angles[i-1][j][k]) + " refracted: inconsequential" 
                 else:
                     t_angles[i][j][k] = arcsin(indices[i-1][j]*sin(
                         t_angles[i-1][j][k])/indices[i][j])
-                    print "Interior to interior: " + str(indices[i-1][j]) + " to " + str(indices[i][j])
-                    print "incident: " + str(180/pi*t_angles[i-1][j][k]) + " refracted: " + str(180/pi*t_angles[i][j][k])
+                    # print "Interior to interior: " + str(indices[i-1][j]) + " to " + str(indices[i][j])
+                    # print "incident: " + str(180/pi*t_angles[i-1][j][k]) + " refracted: " + str(180/pi*t_angles[i][j][k])
     return t_angles
-
 
 """Returns 4D lists of P and I matrices indexed by (layer number, wavelength, 
 incidence angle, polarization [for I matrices]).  
@@ -345,8 +355,7 @@ def evalField(stack, wls, angles, pol, n_i, n_f, indices, t_angles, P, I):
 def matrixCreate(startLayer, endLayer, pol, angle, wLength, P, I):
     M_partial = identity(2)
     for index in range(startLayer, endLayer):
-        # M_partial = dot(M_partial,dot(P[index][wLength][angle], I[index+1][wLength][angle][pol]))
-        M_partial = dot(M_partial,dot(I[index+1][wLength][angle][pol]), )
+        M_partial = dot(M_partial,dot(P[index][wLength][angle], I[index+1][wLength][angle][pol]))
     return M_partial
 
 def evalTR(stack, E_f, E_0, angles, n_i, n_f, t_angles, addBulkT=False):
@@ -378,6 +387,31 @@ def evalTR(stack, E_f, E_0, angles, n_i, n_f, t_angles, addBulkT=False):
     
     return (T, R, TAvg, RAvg)
 
+"""Weight wavelength of incident light to closer resemble blackbody or
+otherwise specially normalized incident radiation"""
+
+# method will take index and wavelength linespace, and return blackbody curve
+# in terms of weight on given index. Note: this produces new normalization!
+# peak is in nanometers
+# currently relevant in ESqIntEval and ESqPlot
+def weightSpectrum(index, wls, peak, active):
+    h = 6.626*10**(-34)         # planck constant
+    c = 3.0*10**(8)             # speed of light
+    kb = 1.380*10**(-23)        # boltzmann constant
+    wien = 2.89777*10**(-3)     # wien's displacement constant
+    wavelength = peak*10**(-9)  # conver peak to meters
+    T = wien/wavelength         # temperature of blackbody in kelvin
+
+    if peak > wls[-1] or peak < wls[0]:
+        raise ValueError("Peak wavelength not permissible in specified wls range")
+    elif index < 0 or index > len(wls)-1:
+        raise ValueError("Index not permissible in specified wls range")
+    elif not active:
+        return 1.0
+    else:
+        wv = wls[index]*10**(-9)    # convert wavelength to meters
+        norm = 1/(2*h*c/(wavelength**5)*(1/(exp(h*c/(kb*T*wavelength))-1)))
+        return norm*2*h*c/(wv**5)*(1/(exp(h*c/(kb*T*wv))-1))
 
 """Return the integral of Re(E)^2 in any layer given the initial E-field
 vector.  This function accounts for absorption and evaluates the integral
@@ -429,6 +463,8 @@ def ESqIntEval(stack, wls, angles, pols, indices, E_i):
         for k in range(len(angles))]
         for j in range(len(wls))]
         for i in range(len(stack))]
+    # for use with blackbody source
+    # ESqIntAvg = [sum(weightSpectrum(j, wls, peakWavelength, blackbody)*ESqInt[i][j][k][l] 
     ESqIntAvg = [sum(ESqInt[i][j][k][l] 
         for j in range(len(wls))
         for k in range(len(angles))
@@ -536,7 +572,6 @@ def ESqIntSpectrumPlot(ESqInt, stack, wls, angles, pols, indices, save, saveFile
 
     wnums = (1.0e7/wls) #wavenumbers in cm^-1 to be used in plotting
     # wnums = map(lambda x: 1.0e7/x, wls) # with no linspace property
-    print wnums
     for i in range(len(stack)):
         if stack[i].active:
             ESqIntWls = [sum(ESqInt[i][j][k][l] 
@@ -576,6 +611,8 @@ def ESqPlot(E_i, stack, wls, angles, pol, indices, save, saveFileName, pointsPer
         for k in range(len(angles))]
         for j in range(len(wls))]
         for i in range(len(stack))]
+    # for use of blackbody radiation source
+    # ESqAvg = [[sum(weightSpectrum(j, wls, peakWavelength, blackbody)*ESq[i][j][k][l][n]
     ESqAvg = [[sum(ESq[i][j][k][l][n]
         for j in range(len(wls))
         for k in range(len(angles))

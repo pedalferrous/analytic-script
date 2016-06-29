@@ -55,7 +55,7 @@ def main():
   # ENTER INCIDENT LIGHT PARAMS AND ENVIRONMENT INDICES HERE
   ###################################################################
 
-  wls = linspace(1000, 7000, 1000) #wavelengths (nm)
+  wls = linspace(2000, 6000, 500) #wavelengths (nm)
   #wls = [4000] #nm
   angles = (pi/180)*array([0.0])
   #angles = (pi/180)*linspace(0,40,10)
@@ -93,10 +93,11 @@ def main():
   """
 
   stack = [
-    film(3500, 1.0, '1.0', False),
-    film(10000, 0.5+0.01j, '0.5', False),
-    film(3000, 0.8, '1', False)
-    ]
+            film(745, 1.399, 'SiO2', False),
+            film(10, itoDrudeParams, 'ITO', False),
+            film(410, 2.4 + 0.106j, 'CQD', True),
+            film(50, 'au', 'Gold', False)
+            ]
 
   """
   stack = [
