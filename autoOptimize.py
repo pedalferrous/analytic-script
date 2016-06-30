@@ -42,10 +42,10 @@ film = namedtuple('layer',['depth','index','name',
 portFilm = namedtuple('layer',['depth','index','name','active'])
 
 stack = [
-        film(0, 1.399, 'SiO2', 80, 100, 2.0, False),
-        film(0, itoDrudeParams, 'ITO', 90, 150, 5.0, False),
-        film(0, 2.4 + 0.106j, 'CQD', 550, 700, 5.0, False),
-        film(0, 'au', 'Gold', 200, 200, 20.0, False)
+        film(0, 1.399, 'SiO2', 90, 90, 10.0, False),
+        film(0, itoDrudeParams, 'ITO', 130, 130, 5.0, False),
+        film(0, 2.4 + 0.106j, 'CQD', 440, 840, 10.0, False),
+        film(0, 'au', 'Gold', 200, 200, 2.0, False)
         ]
 # number of layers in stack
 layerNum = len(stack)
@@ -56,14 +56,36 @@ randomInitial = False
 # methods for heuristic searching
 ###########################################################
 
-# traverse step cells in specified dimension
-def traverseDim(searchSpace, dim, step):
+# array of same size as searchSpace
+# 0: unvisited, 1: visited + inactive
+currentState = zeros([int((stack[i].max_depth-stack[i].min_depth)/stack[i].discrete_depth)+1 
+        for i in range(layerNum)])
+# index of starting point (permit multuple seed locations)
+# note that you have to generate 
+initalPosition = [zeros(len(stack))]
+# list of coordinates for active cells
+activeCells = []
+
+# traverse step cells in specified dimension by step
+# work horse for flood fill
+def traverseDim(activeCells, dim, step):
     return None
 
 # determine whether specified cell has been traversed
-def hasTraversed(searchSpace, coords):
+# helper method
+def hasTraversed(currentState, coords):
     return None
 
+# method will expand around active cells
+# calls evaluateCells to determine fittest new activeCells
+# returns modified copy of arguments and fittest coordinate
+def propagate(currentState, activeCells):
+    return None
+
+# returns fittest among active cells based on to be determined
+# criteria (most promising & best)
+def evaluateCells(activeCells):
+    return None
 
 ###########################################################
 # various helper methods for debugging
@@ -184,10 +206,22 @@ def main():
                     # indicates E^2 field in CQD
                     searchSpace[dim0][dim1][dim2][dim3] = (str(init0) + ":" + str(init1) + ":" + str(init2) + ":" + str(init3) , ESqIntAvg[activeLayerIndex])
 
-    printSearchSpace(searchSpace, 4)
+    printSearchSpace(searchSpace, layerNum)
     print "\nOptimum found with node: "
-    print(getOptimum(searchSpace, 4))
+    print(getOptimum(searchSpace, layerNum))
 
+    #######################################################
+    # dirty display
+    #######################################################    
+
+    # space = ndarray.flatten(searchSpace)
+    # print space
+
+    # porting to mathematica for dirty plots
+    # print "{",
+    # for elem in space:
+    #     print str(elem[1]) + ",",
+    # print "}"
     # poster child thus far
     # ('300.0:80.0:600.0:200.0', 3414.849686094519, [447.17418606338254, 286.86860412575743, 3414.849686094519, 0.9938275291899248])
     # ('90.0:130.0:640.0:200.0', 3504.612761494427, [82.01202593364928, 245.38468092862215, 3504.612761494427, 0.9749937541718504])

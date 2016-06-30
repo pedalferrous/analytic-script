@@ -56,7 +56,7 @@ def main():
     # measurements in nm
     # note that use of linespace is required currently for spectrum plots
     # this can be circumvented.
-    wls = linspace(1000, 10000, 500)
+    wls = linspace(7000, 9000, 200)
     # wls = linspace(4000, 4000, 1)
     # currently unnacepting of angle variation
     # angle represents CCW rotation from direction of propagation
@@ -79,13 +79,29 @@ def main():
 
     """ENTER MAIN STACK HERE"""
 
-    stack = [
-            film(95, 1.399, 'SiO2', True),
-            film(130, itoDrudeParams, 'ITO', True),
-            film(640, 2.4 + 0.106j, 'CQD', True),
-            film(200, 'au', 'Gold', True)
-            ]
+    # stack of five layers
+    # stack = [
+    #     film(70, 1.399, 'SiO2_0', True),
+    #     film(140, itoDrudeParams, 'ITO', True),
+    #     film(540, 2.4 + 0.106j, 'CQD', True),
+    #     film(110, 1.399, 'SiO2_1', True),
+    #     film(200, 'au', 'Gold', True)
+    #     ]
+
+    # stack = [
+    #         film(95, 1.399, 'SiO2', True),
+    #         film(130, itoDrudeParams, 'ITO', True),
+    #         film(640, 2.4 + 0.106j, 'CQD', True),
+    #         film(200, 'au', 'Gold', True)
+    #         ]
     # Average E^2 integral in active layer (CQD): [82.01202593364928, 245.38468092862215, 3504.612761494427, 0.9749937541718504]
+
+    # stack of three layers (MIM)
+    stack = [
+            film(50, 'au', 'Gold_1', False),
+            film(1770, 2.2, 'ZnS', True),
+            film(200, 'au', 'Gold_2', False)
+            ]
 
     # stack = [
     #         film(745, 1.399, 'SiO2', True),
