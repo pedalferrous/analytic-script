@@ -13,3 +13,11 @@ Things to be Addressed:
 (3) Incorporating multiple angles of incidence (possibly weighted) and verifying proper results. Accounting for total internal reflection as well as extension of Snell's law to complex indices of refraction (there are methods available that are valid in the small-conductivity limit, but beyond that it seems as if people are having little luck). Either completely remove this, or categorize its caveats.
 
 (4) Determine validity of the behavior currently shown in fabryPerot.py, and whether this suffices in application to Bouchon 2012. 
+
+(5) Ought the method evaluateCells call on global variables? It makes interface more straightforward for the user, but perhaps obfuscates code. There is currently no problem in making such references explicitly. 
+
+(6) Determine best implementation of barycenter/geometric-center determiners in choosing propagation direction. Not only must dim and step be chosen, but certain cells may be deactivated as well, if the path they are currently on is deemed non-useful (how should this apply to clusters of cells given multiple starting points?). Perhaps both the top performing cells as well as the barycenter may be used to pare down active cell count and dims to be traversed. Look for counter-examples where this produces not only sub-optimal behavior, but wrong behavior. 
+
+(7) Keep in mind the structure of the space, either periodic or attenuating. This can drastically reduce the search space.
+
+(8) Determine speed of array copying and method calling, given complexity of new system. If slow down is dramatic, see if architecture is incorrigible or simply badly planned. 

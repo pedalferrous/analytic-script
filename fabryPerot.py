@@ -44,7 +44,7 @@ portFilm = namedtuple('layer',['depth','index','name','active'])
 
 stack = [
         film(0, 'au', 'Gold', 50, 50, 5.0, False),
-        film(0, 2.2, 'ZnS', 1000, 2000, 10.0, False),
+        film(0, 2.2, 'ZnS', 1100, 4000, 5.0, False),
         film(0, 'au', 'Gold', 200, 200, 10.0, False)
         ]
 # number of layers in stack
@@ -149,6 +149,18 @@ def main():
     printSearchSpace(searchSpace, layerNum)
     print "\nOptimum found with node: "
     print(getOptimum(searchSpace, layerNum))
+
+    #######################################################
+    # dirty printing
+    #######################################################    
+
+    space = ndarray.flatten(searchSpace)
+    print "\n dirty print of flattened space (FOR 1D COLLECTION ONLY!)\n"
+    # porting to mathematica for dirty plots
+    print "{",
+    for elem in space:
+        print str(elem[1]) + ",",
+    print "}"
 
 
 if __name__ == "__main__":
