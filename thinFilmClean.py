@@ -182,8 +182,6 @@ def main():
     if plotESQ:  
         ESqPlot(E_i, stack, wls, angles, pols, indices, save, saveFileName)
 
-
-
 """Look up the index of refraction for a given wavelength reference file.
 May be real, complex, or interpolated from list by wavelength. 
 If the index is a list of Drude model parameters, feed them to drude() 
