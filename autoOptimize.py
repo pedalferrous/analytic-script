@@ -20,7 +20,7 @@ import thinFilmClean
 ###########################################################
 
 # constants required for the operation of thinFilmClean
-wls = [4000]
+wls = [3500]
 # angle variation deprecated
 angles = (pi/180)*array([0.0])
 #0 represents s-polarization while 1 is p-polarization
@@ -42,9 +42,9 @@ film = namedtuple('layer',['depth','index','name',
 portFilm = namedtuple('layer',['depth','index','name','active'])
 
 stack = [
-        film(0, 1.399, 'SiO2', 90, 90, 10.0, False),
-        film(0, itoDrudeParams, 'ITO', 50, 500, 10.0, False),
-        film(0, 2.4 + 0.106j, 'CQD', 450, 1000, 10.0, False),
+        film(0, 1.399, 'SiO2', 5, 450, 5.0, False),
+        film(0, itoDrudeParams, 'ITO', 5, 450, 5.0, False),
+        film(0, 2.4 + 0.106j, 'CQD', 100, 720, 5.0, False),
         film(0, 'au', 'Gold', 200, 200, 10.0, False)
         ]
 # number of layers in stack
@@ -124,11 +124,25 @@ def propagate(currentState, activeCells, fitnessMap, optimum):
     ###################################
     # selectedCells = activeCells # default
 
-    percentage = 20
+    # begin search with utilization of all active cells
+    # then grade to more selective
+    if len(activeCells) < 24:
+        percentage = 70
+        # print "level 1"
+    elif len(activeCells) < 100:
+        percentage = 30
+        # print "level 2"        
+    elif len(activeCells) < 200:
+        percentage = 10
+        # print "level 3"        
+    else:
+        percentage = 5
+        # print "level 4"    
+    # print "active cells: " + str(len(activeCells))    
     fittestPercent = getFittestPercent(fitnessMap, percentage)
-    selectedCells  = map(lambda elem: elem[0], fittestPercent)
+    selectedCells  = map(lambda elem: elem[0], fittestPercent) 
 
-    for cell in selectedCells:
+    for cell in selectedCells: # loop over most promising
         neighbors      = getNeighborCells(cell)
         newState[cell] = 1 # mark current cell as visited + inactive
         # SLOW: consider replacement by portion of split list from selectedCells
@@ -142,12 +156,10 @@ def propagate(currentState, activeCells, fitnessMap, optimum):
         # determine most promising neighbors of fittest cells via barycenter
         selectedNeighbors = []
         offset            = getCenterOffset(fittestPercent)
-        # print map(lambda elem: 1 if abs(elem) > 0.01 else 0, offset)
-        # directions with strong heuristic support
-        threshold = 0.01
-        minActive = 25
-        properDim = map(lambda elem: True if abs(elem) > threshold else False, offset)
-        print properDim
+        # threshold for barycenter and minimum active cells for heuristic
+        threshold = 0.0000
+        minActive = 10
+        properDim = map(lambda elem: True if abs(elem) >= threshold else False, offset)
         signDim   = map(lambda elem: 1 if elem >= 0 else -1, offset)
         # if no clear advantageous direction, or lack of activity, simple floodfill
         if not any(properDim) or len(activeCells) < minActive:
@@ -156,6 +168,7 @@ def propagate(currentState, activeCells, fitnessMap, optimum):
 
         for elem in neighbors:
             # check if dim is proper and movement in right direction
+            # elem[0][0] is dim, elem[0][1] is step
             if properDim[elem[0][0]] and signDim[elem[0][0]]*elem[0][1] >= 0:
                 selectedNeighbors.append(elem)
 
@@ -175,12 +188,6 @@ def propagate(currentState, activeCells, fitnessMap, optimum):
 
     # keep track of state, active, and fittest cell of this iteration
     return (newState, newActive, newOptimum)
-
-    ###################################
-    # MAKE SURE TO CHECK FOR CASE OF NO ACTIVE CELLS LEFT
-    # this method is looped in main(), and thus halting calls
-    # when newActive is empty is a safe bet for now
-    ###################################
 
 # gives barycenter minus geometric center
 def getCenterOffset(fitnessMap):
@@ -216,6 +223,7 @@ def getCoordinateCenter(fitnessMap, isWeighted):
         return nonWeightedSum
 
 # returns list of tuples with coordinates and fitness to be used by propagate
+# this method alone calls thinFilm
 def evaluateCells(activeCells, activeLayer):
     fitnessMap = []
     for elem in activeCells:
@@ -223,7 +231,8 @@ def evaluateCells(activeCells, activeLayer):
         parameters = [stack[i].min_depth + elem[i]*stack[i].discrete_depth for i in range(len(elem))]
         for i in range(len(parameters)):
             # find a more efficient way to populate
-            stack[i] = film(parameters[i], 
+            stack[i] = film(
+                parameters[i], 
                 stack[i].index, 
                 stack[i].name, 
                 stack[i].min_depth, 
@@ -277,13 +286,11 @@ def evaluateCells(activeCells, activeLayer):
 ###########################################################
 
 # produces prettry planar graph of currentState in dim1-dim2 plane
+# currently does not slice automatically (hard-coded)
 def prettyPrint(currentState, dim1, dim2):
-    dim1Size    = currentState.shape[dim1]
-    dim2Size    = currentState.shape[dim2]
-    # stateSlice  = currentState[range(dim1) if i == dim1 else range(dim2) if i == dim2 else 0 for i in range(len(currentState.shape))]
-    stateSlice  = currentState[0,:,:,0]
+    sliceParam  = [slice(None) if index == dim1 or index == dim2 else 0 for index in range(len(currentState.shape))]
+    stateSlice  = currentState[sliceParam]
     prettySlice = map(lambda elem: map(lambda elem: "#" if elem == 2 else "." if elem == 1 else " ", elem), stateSlice)
-    prettySlice[8][19] = "O"
     for row in prettySlice:
         for element in row:
             print element,
@@ -295,6 +302,9 @@ def prettyPrint(currentState, dim1, dim2):
 
 def main():
 
+    MAX_STEP     = 25 # hard cutoff for propagations
+    ACTIVE_LAYER = 2  # which layer in stack active (zero-index)
+    DIVISIONS    = 4  # active cells per dimension (cartesian product base)
     # same size as searchSpace
     # 0: unvisited, 1: visited + inactive
     # 2: visited + active.
@@ -302,12 +312,13 @@ def main():
         -stack[i].min_depth)/stack[i].discrete_depth)+1 
             for i in range(layerNum)])
     # index of starting point (permits multuple seed locations)
-    # list of tuples: all cell coordinate are tuples
-    # initialPosition = [tuple(zeros(len(stack),dtype=int))]
-    initialPosition = [(0,30,0,0)]
-    # for row in range(2):
-    #     for col in range(2):
-    #         initialPosition.append((0,45/2*row,55/2*col,0))
+    # list of tuples: ALL cell coordinate are tuples
+    initialPosition = []
+    stateShape      = currentState.shape
+    dimIntervals    = [range(0,elem,elem/DIVISIONS-1) if elem > DIVISIONS else range(0,elem) for elem in stateShape]
+    print "\ninterval division of search space: \n" + str(dimIntervals) + "\n"
+    initialPosition     = array(meshgrid(*dimIntervals)).T.reshape(-1,len(stateShape))
+    initialPosition     = map(lambda elem: tuple(elem), initialPosition)
 
     # list of coordinates for active cells
     activeCells = copy.deepcopy(initialPosition)
@@ -317,29 +328,47 @@ def main():
     # store global optimum thusfar
     optimum = [((0,0,0,0),0.0)]
     
-    print("\n"*75)
-    print "________________________INITIAL STATE________________________\n"
-    # print currentState
-    prettyPrint(currentState, 2, 3)
-    print "\n " + str(optimum)
-    time.sleep(2.0)
-    print("\n"*75)
+    # print("\n"*75)
+    # print "________________________INITIAL STATE________________________\n"
+    # # print currentState
+    # prettyPrint(currentState, 2, 3)
+    # print "\n " + str(optimum)
+    # time.sleep(2.0)
+    # print("\n"*75)
 
+    # print "\nSlice of State Across Dimensions: 1 & 2:"
+    # print "________________________________________\n"
+    # prettyPrint(currentState,1,2)
+
+    print "\nBest Performing Cell per Each Iteration:"
+    print "________________________________________\n"
+    print "position in space\t\tfitness"
     count = 0
-    while len(activeCells) != 0 and count < 50:
+    while len(activeCells) != 0 and count < MAX_STEP:
         count = count + 1
-        fitnessMap = evaluateCells(activeCells, 2)
+        fitnessMap = evaluateCells(activeCells, ACTIVE_LAYER)
         (newState, newActive, newOptimum) = propagate(currentState, activeCells, fitnessMap, optimum)
         currentState = newState
         activeCells  = newActive
         optimum      = newOptimum
-        print("\n"*75)
-        print newActive
-        print "________________________CURRENT STATE________________________\n"
-        # print currentState
-        prettyPrint(currentState, 2, 3)
-        print "\n " + str(optimum)
-        time.sleep(0.01)
+        # print("\n"*75)
+        # print newActive
+        # print "________________________CURRENT STATE________________________\n"
+        # # print currentState
+        # prettyPrint(currentState, 2, 3)
+        # print "\n " + str(optimum)
+        # time.sleep(0.01)
+        print str(optimum[0][0]) + "\t\t\t" + "%.3f" % optimum[0][1]
+
+    twoCount = 0
+    for elem in currentState.flatten():
+        if elem == 2:
+            twoCount = twoCount + 1
+    totalLen = len(currentState.flatten())
+    print "________________________________________"
+    print "\ntotal cells searched: " + str(twoCount)
+    print "total cells in space: " + str(totalLen)
+    print "traversal percentage: "  + "%.3f" % (twoCount*100.0/totalLen)
 
     #######################################################
     # unit tests

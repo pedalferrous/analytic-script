@@ -97,13 +97,6 @@ def main():
             ]
     # Average E^2 integral in active layer (CQD): [82.01202593364928, 245.38468092862215, 3504.612761494427, 0.9749937541718504]
 
-    # stack of three layers (MIM)
-    # stack = [
-    #         film(50, 'au', 'Gold_1', False),
-    #         film(290, 2.2, 'ZnS', True),
-    #         film(200, 'au', 'Gold_2', False)
-    #         ]
-
     # original hand-optimized stack
     # stack = [
     #         film(745, 1.399, 'SiO2', True),
