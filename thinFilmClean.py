@@ -25,7 +25,7 @@ from scipy.interpolate import interp1d
 film = namedtuple('layer',['depth','index','name','active'])
 
 peakWavelength = 4000
-blackbody = True
+blackbody = False
 
 ###########################################################
 # Main loop
@@ -44,26 +44,27 @@ def main():
 
     #options to plot T/R as function of angle or incident wavelength
     plotTRangle = False
-    plotTRspectrum = False
+    plotTRspectrum = True
 
     #option to evaluate E^2 integral in active layer and plot spectrum
     evalESQint = False
     #option to plot E^2 throughout structure
-    plotESQ = True
+    plotESQ = False
 
     """ENTER INCIDENT LIGHT PARAMS AND ENVIRONMENT INDICES HERE"""
 
     # measurements in nm
     # note that use of linespace is required currently for spectrum plots
     # this can be circumvented.
-    # wls = linspace(1000, 10000, 2000)
-    wls = linspace(4000, 4000, 1)
+    wls = linspace(1500, 12000, 1000)
+    # wls = linspace(4000, 4000, 1)
     # currently unnacepting of angle variation
     # angle represents CCW rotation from direction of propagation
     angles = (pi/180)*array([0.0])
-    #pols: 0 is s- [normal to plane of incidence], 1 is p- [parallel]
+    # pols: 0 is s- [normal to plane of incidence], 1 is p- [parallel]
     pols = [0,1]
-    #incident and final indices (currently free space)
+    # incident and final indices (currently free space)
+    # n_i = 3.43 given incidence through silicon
     n_i = 3.43
     n_f = 1.0
 
@@ -79,32 +80,49 @@ def main():
 
     """ENTER MAIN STACK HERE"""
 
-    # stack of five layers
+    # stack optimized for minimal T + R at 4000 nm
     # stack = [
-    #     film(70, 1.399, 'SiO2_0', True),
-    #     film(140, itoDrudeParams, 'ITO', True),
-    #     film(540, 2.4 + 0.106j, 'CQD', True),
-    #     film(110, 1.399, 'SiO2_1', True),
-    #     film(200, 'au', 'Gold', True)
+    #         film(235, 1.399, 'SiO2', True),
+    #         film(100, itoDrudeParams, 'ITO', True),
+    #         film(610, 2.4 + 0.106j, 'CQD', True),
+    #         film(200, 'au', 'Gold', True)
+    #         ]
+
+    # three layer stack from Bouchon
+    # stack = [
+    #     film(50, 'au', 'Gold_1', True),
+    #     film(1609, 'ZnS', 'Zinc Sulfide', True),
+    #     film(200, 'au', 'Gold_2',  True)
     #     ]
 
     # computer optimized stack (courtesy of autoOptimize)
-    stack = [
-            film(95, 1.399, 'SiO2', True),
-            film(130, itoDrudeParams, 'ITO', True),
-            film(640, 2.4 + 0.106j, 'CQD', True),
-            film(200, 'au', 'Gold', True)
-            ]
-    # Average E^2 integral in active layer (CQD): [82.01202593364928, 245.38468092862215, 3504.612761494427, 0.9749937541718504]
+    # stack = [
+    #         film(95, 1.399, 'SiO2', True),
+    #         film(130, itoDrudeParams, 'ITO', True),
+    #         film(640, 2.4 + 0.106j, 'CQD', True),
+    #         film(200, 'au', 'Gold', True)
+    #         ]
+    # Average E^2 integral in active layer (CQD): 
+    # [82.01202593364928, 245.38468092862215, 3504.612761494427, 0.9749937541718504]
 
     # original hand-optimized stack
     # stack = [
-    #         film(745, 1.399, 'SiO2', True),
-    #         film(10, itoDrudeParams, 'ITO', True),
+    #         film(745, 1.399, 'SiO2', False),
+    #         film(10, itoDrudeParams, 'ITO', False),
     #         film(410, 2.4 + 0.106j, 'CQD', True),
-    #         film(50, 'au', 'Gold', True)
+    #         film(50, 'au', 'Gold', False)
     #         ]
-    # Average E^2 integral in active layer (CQD): [4477.880418884087, 122.29409960678106, 2790.1956874447324, 1.6006346413216146]
+    # Average E^2 integral in active layer (CQD): 
+    # [4477.880418884087, 122.29409960678106, 2790.1956874447324, 1.6006346413216146]
+
+    # input from experimental data
+    stack = [
+            film(840, 1.399, 'SiO2', False),
+            film(50, itoDrudeParams, 'ITO', False),
+            film(525, 2.4 + 0.106j, 'CQD', True),
+            film(50, 'au', 'Gold', False)
+            ]
+
 
     ###########################################################
     # Main processes and evaluation
@@ -516,6 +534,12 @@ def TRAnglePlot(T,R,wls,angles,save,saveFileName):
         plt.savefig('results/{0}/{0}-TAnglePlot.pdf'.format(saveFileName))
     plt.show()
 
+#    ________  ______  ____  _______   ____________  __   __  _______  ____  ________________________
+#   / ____/ / / / __ \/ __ \/ ____/ | / /_  __/ /\ \/ /  /  |/  / __ \/ __ \/  _/ ____/  _/ ____/ __ \
+#  / /   / / / / /_/ / /_/ / __/ /  |/ / / / / /  \  /  / /|_/ / / / / / / // // /_   / // __/ / / / /
+# / /___/ /_/ / _, _/ _, _/ /___/ /|  / / / / /___/ /  / /  / / /_/ / /_/ // // __/ _/ // /___/ /_/ /
+# \____/\____/_/ |_/_/ |_/_____/_/ |_/ /_/ /_____/_/  /_/  /_/\____/_____/___/_/   /___/_____/_____/
+
 """Plot T and R as a function of wavenumber k (in m).
 Averages over angles"""
 def TRSpectrumPlot(T,R,wls,angles,save,saveFileName,tPlot=True,
@@ -534,39 +558,44 @@ def TRSpectrumPlot(T,R,wls,angles,save,saveFileName,tPlot=True,
         for j in range(len(wls))]
     RAnglPolAvg = [0.5*(RsAnglAvg[j]+RpAnglAvg[j])
         for j in range(len(wls))]
-    TAnglPolAvg = [0.5*(TsAnglAvg[j]+TpAnglAvg[j])
+    # temporary placement for calculation of absorbance
+    TAnglPolAvg = [-1.0*math.log(0.5*(TsAnglAvg[j]+TpAnglAvg[j]+RAnglPolAvg[j]),10)
         for j in range(len(wls))]
     k_0 = 1.0e9/wls #conversion included from nm -> m
 
-    ax = plt.axes()
-    if tPlot:
-        ax.plot(wls, TsAnglAvg, label='T_s')
-        ax.plot(wls, TpAnglAvg, label='T_p')
-        ax.plot(wls, TAnglPolAvg, label='T_avg')
-    if rPlot:
-        ax.plot(wls, RsAnglAvg, label='R_s')
-        ax.plot(wls, RpAnglAvg, label='R_p')
-        ax.plot(wls, RAnglPolAvg, label='R_avg')
-    ax.legend()
-    ax.set_xlabel('Wavelength (nm)', fontsize=18)
-    plt.xticks(fontsize=15)
-    plt.yticks(fontsize=15)
-    if save:
-        plt.savefig('results/{0}/{0}-TRWlsSpectrum.pdf'.format(saveFileName))
-    plt.show()
+    # for use in porting to excel
+    # print ",".join(map(lambda elem: str(elem),1.0e7/wls)) 
+    # print ",".join(map(lambda elem: str(elem),TAnglPolAvg))
+
+    # ax = plt.axes()
+    # # if tPlot:
+    #     # ax.plot(wls, TsAnglAvg, label='T_s')
+    #     # ax.plot(wls, TpAnglAvg, label='T_p')
+    #     # ax.plot(wls, TAnglPolAvg, label='T_avg')
+    # # if rPlot:
+    #     # ax.plot(wls, RsAnglAvg, label='R_s')
+    #     # ax.plot(wls, RpAnglAvg, label='R_p')
+    #     # ax.plot(wls, RAnglPolAvg, label='R_avg')
+    # ax.legend()
+    # ax.set_xlabel('Wavelength (nm)', fontsize=18)
+    # plt.xticks(fontsize=15)
+    # plt.yticks(fontsize=15)
+    # if save:
+    #     plt.savefig('results/{0}/{0}-TRWlsSpectrum.pdf'.format(saveFileName))
+    # plt.show()
 
     ax = plt.axes()
     if tPlot:
-        ax.plot(0.01*k_0, TsAnglAvg, label='T_s')
-        ax.plot(0.01*k_0, TpAnglAvg, label='T_p')
+        # ax.plot(0.01*k_0, TsAnglAvg, label='T_s')
+        # ax.plot(0.01*k_0, TpAnglAvg, label='T_p')
         ax.plot(0.01*k_0, TAnglPolAvg, label='T_avg')
-    if rPlot:
-        ax.plot(0.01*k_0, RsAnglAvg, label='R_s')
-        ax.plot(0.01*k_0, RpAnglAvg, label='R_p')
-        ax.plot(0.01*k_0, RAnglPolAvg, label='R_avg')
+    # if rPlot:
+        # ax.plot(0.01*k_0, RsAnglAvg, label='R_s')
+        # ax.plot(0.01*k_0, RpAnglAvg, label='R_p')
+        # ax.plot(0.01*k_0, RAnglPolAvg, label='R_avg')
     ax.legend(loc='upper left')
     ax.set_xlabel('k (cm^-1)', fontsize=18)
-    ax.set_ylim([0.0,1.0])
+    ax.set_ylim([0.0,4.0])
     plt.xticks(fontsize=15)
     plt.yticks(fontsize=15)
     if save:

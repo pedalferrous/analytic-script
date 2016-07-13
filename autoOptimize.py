@@ -20,13 +20,14 @@ import thinFilmClean
 ###########################################################
 
 # constants required for the operation of thinFilmClean
-wls = [3500]
+wls = [7400]
 # angle variation deprecated
 angles = (pi/180)*array([0.0])
 #0 represents s-polarization while 1 is p-polarization
 pols = [0,1]
 #incident and final indices (currently free space)
-n_i = 3.43
+# n_i = 3.43
+n_i = 1.0
 n_f = 1.0
 
 # initial stack, with limitation parameters imposed
@@ -41,13 +42,22 @@ film = namedtuple('layer',['depth','index','name',
 # modified film to be ported into thinFilmClean.py
 portFilm = namedtuple('layer',['depth','index','name','active'])
 
-stack = [
-        film(0, 1.399, 'SiO2', 5, 450, 5.0, False),
-        film(0, itoDrudeParams, 'ITO', 5, 450, 5.0, False),
-        film(0, 2.4 + 0.106j, 'CQD', 100, 720, 5.0, False),
-        film(0, 'au', 'Gold', 200, 200, 10.0, False)
-        ]
+# stack = [
+#         film(0, 1.399, 'SiO2', 5, 450, 5.0, False),
+#         film(0, itoDrudeParams, 'ITO', 5, 450, 5.0, False),
+#         film(0, 2.4 + 0.106j, 'CQD', 200, 720, 5.0, False),
+#         film(0, 'au', 'Gold', 200, 200, 10.0, False)
+#         ]
 # number of layers in stack
+
+# layer arrangement from Bouchon 2012
+stack = [
+        film(0, 'au', 'Gold_1', 50, 50, 5.0, False),
+        film(0, 'ZnS', 'Zinc Sulfide', 800, 1800, 1.0, False),
+        film(0, 'au', 'Gold_2', 200, 200, 10.0, False)
+        ]
+
+
 layerNum = len(stack)
 
 ###########################################################
@@ -157,7 +167,7 @@ def propagate(currentState, activeCells, fitnessMap, optimum):
         selectedNeighbors = []
         offset            = getCenterOffset(fittestPercent)
         # threshold for barycenter and minimum active cells for heuristic
-        threshold = 0.0000
+        threshold = 0.003
         minActive = 10
         properDim = map(lambda elem: True if abs(elem) >= threshold else False, offset)
         signDim   = map(lambda elem: 1 if elem >= 0 else -1, offset)
@@ -277,6 +287,14 @@ def evaluateCells(activeCells, activeLayer):
             pols,
             indices,
             E_i)
+
+        # for use in minimizing T + R
+        # (T, R, TAvg, RAvg) = thinFilmClean.evalTR(portStack, E_f, E_0, angles, n_i, n_f, 
+        # t_angles, addBulkT=True)
+        # # work to minimize their sum by maximizing its reciprocal
+        # # no use of active layer
+        # fitnessElem = (elem, 1.0/(TAvg + RAvg))
+
         fitnessElem = (elem, ESqIntAvg[activeLayer])
         fitnessMap.append(fitnessElem)
     return fitnessMap
@@ -302,9 +320,9 @@ def prettyPrint(currentState, dim1, dim2):
 
 def main():
 
-    MAX_STEP     = 25 # hard cutoff for propagations
-    ACTIVE_LAYER = 2  # which layer in stack active (zero-index)
-    DIVISIONS    = 4  # active cells per dimension (cartesian product base)
+    MAX_STEP     = 30 # hard cutoff for propagations
+    ACTIVE_LAYER = 1  # which layer in stack active (zero-index)
+    DIVISIONS    = 20  # active cells per dimension (cartesian product base)
     # same size as searchSpace
     # 0: unvisited, 1: visited + inactive
     # 2: visited + active.
@@ -327,15 +345,8 @@ def main():
         currentState[elem] = 2
     # store global optimum thusfar
     optimum = [((0,0,0,0),0.0)]
-    
-    # print("\n"*75)
-    # print "________________________INITIAL STATE________________________\n"
-    # # print currentState
-    # prettyPrint(currentState, 2, 3)
-    # print "\n " + str(optimum)
-    # time.sleep(2.0)
-    # print("\n"*75)
 
+    # method for slice printing
     # print "\nSlice of State Across Dimensions: 1 & 2:"
     # print "________________________________________\n"
     # prettyPrint(currentState,1,2)
@@ -351,24 +362,17 @@ def main():
         currentState = newState
         activeCells  = newActive
         optimum      = newOptimum
-        # print("\n"*75)
-        # print newActive
-        # print "________________________CURRENT STATE________________________\n"
-        # # print currentState
-        # prettyPrint(currentState, 2, 3)
-        # print "\n " + str(optimum)
-        # time.sleep(0.01)
         print str(optimum[0][0]) + "\t\t\t" + "%.3f" % optimum[0][1]
 
-    twoCount = 0
+    searchCount = 0
     for elem in currentState.flatten():
-        if elem == 2:
-            twoCount = twoCount + 1
+        if elem == 2 or elem == 1:
+            searchCount = searchCount + 1
     totalLen = len(currentState.flatten())
     print "________________________________________"
-    print "\ntotal cells searched: " + str(twoCount)
+    print "\ntotal cells searched: " + str(searchCount)
     print "total cells in space: " + str(totalLen)
-    print "traversal percentage: "  + "%.3f" % (twoCount*100.0/totalLen)
+    print "traversal percentage: "  + "%.3f" % (searchCount*100.0/totalLen)
 
     #######################################################
     # unit tests

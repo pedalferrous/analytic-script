@@ -27,3 +27,5 @@ Things to be Addressed:
 (10) Configure output and documentation to be relatively pleasant and user friendly, deciding which parameters are open to the public, and which ought not to be optimized. Call the entire thing from another interface, who knows. Compare data output of this particular simulation with gathered data from experiments, and streamline graphics for use in this comparison. 
 
 (11) Determine if there is a way to search for local optima while excluding other local optima, or global optima. Threshold values are problematic, and breaking the space into regions may be the only way to accomplish a useful division of extrema. Current algorithm is non discerning (could however store a list of locally fittest cells, rather than globally) 
+
+(12) See if use of activity parameter in autoOptimize's stack is cleaner, that is, is activeIndex superfluous or necessary to the architecture of this particular code.
