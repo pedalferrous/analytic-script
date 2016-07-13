@@ -1,7 +1,10 @@
 # analytic-script
 PROJECT: Analytic Solver for Thin Film Photovoltaics
+
 PROJECT PET NAME: Every Love Story is a Ghost Story
+
 AUTHOR: Zane Rossi with thinFilm.py based in code by John Roberts
+
 INSTIUTION: University of Chicago, PGS Lab, 2016.
 
 #######################################
