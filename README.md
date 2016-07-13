@@ -1,8 +1,8 @@
 # analytic-script
-**PROJECT:** Analytic Solver for Thin Film Photovoltaics 
-**PROJECT PET NAME:** Every Love Story is a Ghost Story 
-**AUTHOR:** Zane Rossi with thinFilmClean.py based in code by John Roberts 
-**INSTIUTION:** University of Chicago, PGS Lab, 2016.
+**PROJECT:** Analytic Solver for Thin Film Photovoltaics <br/>
+**PROJECT PET NAME:** Every Love Story is a Ghost Story <br/>
+**AUTHOR:** Zane Rossi with thinFilmClean.py based in code by John Roberts <br/>
+**INSTIUTION:** University of Chicago, PGS Lab, 2016. <br/>
 
 #######################################
 ## PRIMARY USES & SUMMARY: 
