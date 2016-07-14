@@ -4,6 +4,13 @@
 **AUTHOR:** Zane Rossi with thinFilmClean.py based in code by John Roberts <br/>
 **INSTIUTION:** University of Chicago, PGS Lab, 2016. <br/>
 
+> Giustizia mosse il mio alto fattore;
+> fecemi la divina podestate,
+> la somma sapïenza e'l primo amore.
+> Dinanzi a me non fuor cose create
+> se non etterne, e io etterno duro.
+> Lasciate ogne speranza, voi ch'intrate'
+
 #######################################
 ## PRIMARY USES & SUMMARY: 
 * Contents of this project may be used in tandem to
