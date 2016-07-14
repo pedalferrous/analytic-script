@@ -20,35 +20,37 @@
   is easily adjustable, with measurements in nm, and
   directions for input of refractive indices, allowing
   constant real, constant complex, csv-format, and Drude
-  Model indices.
+  Model.
 * File `autoOptimize.py` calls various methods in the
-  aforementioned file, but does not utilize stack defined
-  in the file at that time (if such a stack exists). Rather
+  aforementioned file, but does not use `stack` defined
+  in file (if such `stack` exists). Rather
   `autoOptimize.py` defines its own `stack` with auxiliary
   parameters for minimum, maximum, and smallest  discrete
   step possible to fabricate for each layer. This `stack`
   is modified quietly by the code (specifically in method
-  `evaluateCells`, to be readable by `thinFilmClean.py` methods. Code
-  uses heuristic to populate space defined as n-dimensional
-  discrete space consisting of all possible layer thicknesses. 
-  This space, often very large, is seeded and smartly
+  `evaluateCells`, modified into `portStack` to be readable by 
+  `thinFilmClean.py` methods). Code
+  uses heuristic to populate space defined as n-dimensional and
+  discrete, consisting of all possible combinations of layer thicknesses. 
+  This space, often very large, is seeded and pseudo-greedily
   searched so that optimal or near optimal configuration
-  can often be found through direct calculation of only 0.05% of
-  entire space. Details of this optimization, and its
-  standard and advances use are defined below.
+  may be found, although direct calculation is performed for only a
+  fraction of the entire space. Details of this optimization, its
+  current parameters, and its advances use are defined below.
   `autoOptimize.py` does not use `thinFilmClean.py` graphic methods
   currently, but optimal `stack`s may be either ported 
-  by hand, or auxiliary call.
+  by hand, or called with relative ease.
 * file `paramVary.py` is deprecated.
 * file `thinFilm.py` is deprecated and will eventually be replaced by
   `thinFilmClean.py`.
-* auxiliary files contain refraction index information,
+* auxiliary files contain optical index information,
   or notes on code performance and routes for improvement.
 
 #######################################
 ## THINFILMCLEAN METHODS:
 
 ### main:
+  * the following descriptors appear in order seen in method
   * options to save, as well as plot various characteristics
     of device, clearly named and labeled
   * various alterable constants are defined, with their uses
@@ -113,8 +115,8 @@
       above.
     * `E_i`: list of e-field present at forward edge of indexed layer, which
       may then be propagated forward by methods like EsqPlot for display.
-    * this method as well as `evalTR` follow closely the matrix transfer method
-      defined in Pettersson et al. (JAP 1999). 
+  * this method as well as `evalTR` follow closely the matrix transfer method
+    defined in Pettersson et al. (JAP 1999). 
 
 #######################################
 ## AUTOOPTIMIZE METHODS:
