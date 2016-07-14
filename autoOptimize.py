@@ -20,14 +20,14 @@ import thinFilmClean
 ###########################################################
 
 # constants required for the operation of thinFilmClean
-wls = [7400]
+wls = [4000]
 # angle variation deprecated
 angles = (pi/180)*array([0.0])
 #0 represents s-polarization while 1 is p-polarization
 pols = [0,1]
 #incident and final indices (currently free space)
 # n_i = 3.43
-n_i = 1.0
+n_i = 3.43
 n_f = 1.0
 
 # initial stack, with limitation parameters imposed
@@ -42,20 +42,20 @@ film = namedtuple('layer',['depth','index','name',
 # modified film to be ported into thinFilmClean.py
 portFilm = namedtuple('layer',['depth','index','name','active'])
 
-# stack = [
-#         film(0, 1.399, 'SiO2', 5, 450, 5.0, False),
-#         film(0, itoDrudeParams, 'ITO', 5, 450, 5.0, False),
-#         film(0, 2.4 + 0.106j, 'CQD', 200, 720, 5.0, False),
-#         film(0, 'au', 'Gold', 200, 200, 10.0, False)
-#         ]
+stack = [
+        film(0, 1.399, 'SiO2', 95, 95, 10.0, False),
+        film(0, itoDrudeParams, 'ITO', 5, 450, 10.0, False),
+        film(0, 2.4 + 0.106j, 'CQD', 200, 700, 10.0, False),
+        film(0, 'au', 'Gold', 200, 200, 10.0, False)
+        ]
 # number of layers in stack
 
 # layer arrangement from Bouchon 2012
-stack = [
-        film(0, 'au', 'Gold_1', 50, 50, 5.0, False),
-        film(0, 'ZnS', 'Zinc Sulfide', 800, 1800, 1.0, False),
-        film(0, 'au', 'Gold_2', 200, 200, 10.0, False)
-        ]
+# stack = [
+#         film(0, 'au', 'Gold_1', 50, 50, 5.0, False),
+#         film(0, 'ZnS', 'Zinc Sulfide', 800, 1800, 1.0, False),
+#         film(0, 'au', 'Gold_2', 200, 200, 10.0, False)
+#         ]
 
 
 layerNum = len(stack)
@@ -320,9 +320,9 @@ def prettyPrint(currentState, dim1, dim2):
 
 def main():
 
-    MAX_STEP     = 30 # hard cutoff for propagations
-    ACTIVE_LAYER = 1  # which layer in stack active (zero-index)
-    DIVISIONS    = 20  # active cells per dimension (cartesian product base)
+    MAX_STEP     = 400 # hard cutoff for propagations
+    ACTIVE_LAYER = 2  # which layer in stack active (zero-index)
+    DIVISIONS    = 4  # active cells per dimension (cartesian product base)
     # same size as searchSpace
     # 0: unvisited, 1: visited + inactive
     # 2: visited + active.
@@ -340,17 +340,13 @@ def main():
 
     # list of coordinates for active cells
     activeCells = copy.deepcopy(initialPosition)
-    # intialize currentState according to activeCells
+    # initialize currentState according to activeCells
     for elem in activeCells:
         currentState[elem] = 2
     # store global optimum thusfar
     optimum = [((0,0,0,0),0.0)]
 
-    # method for slice printing
-    # print "\nSlice of State Across Dimensions: 1 & 2:"
-    # print "________________________________________\n"
-    # prettyPrint(currentState,1,2)
-
+    # main propagation loop
     print "\nBest Performing Cell per Each Iteration:"
     print "________________________________________\n"
     print "position in space\t\tfitness"
@@ -363,7 +359,9 @@ def main():
         activeCells  = newActive
         optimum      = newOptimum
         print str(optimum[0][0]) + "\t\t\t" + "%.3f" % optimum[0][1]
+        prettyPrint(newState, 1, 2)
 
+    # prints statistics on search space size and percentage actually searched
     searchCount = 0
     for elem in currentState.flatten():
         if elem == 2 or elem == 1:

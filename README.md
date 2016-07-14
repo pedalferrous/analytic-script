@@ -40,11 +40,13 @@
   currently, but optimal `stack`s may be either ported 
   by hand, or auxiliary call.
 * file `paramVary.py` is deprecated.
+* file `thinFilm.py` is deprecated and will eventually be replaced by
+  `thinFilmClean.py`.
 * auxiliary files contain refraction index information,
   or notes on code performance and routes for improvement.
 
 #######################################
-## THINFILM METHODS:
+## THINFILMCLEAN METHODS:
 
 ### main:
   * options to save, as well as plot various characteristics
@@ -53,13 +55,13 @@
     and dimensions defined in code. these will not
     need to be altered often if one is testing differing
     configurations under same external conditions
-      *  `wls` is simply list of linspace of wavelengths (in nm)
-         to be tested over. Average plots will average equally over all
-         specified wavelengths with equal weight. Blackbody radiation
-         may be turned on with given maximum wavelength in code preamble.
+      *  `wls` is simply a linspace of wavelengths (in nm)
+         to be iterated over. Average plots will average unweighted over all
+         specified wavelengths. Blackbody radiation weighting
+         may be turned on with specified maximum wavelength in code preamble.
          be aware these results are not directly commensurable with non
          blackbody results, as overall scale is arbitrary.
-      *  `angles` is a non weighted list in radians
+      *  `angles` is a non weighted list in **RADIANS**
   * fundamental constants are defined
   * main stack is defined, comprising layers, each a `film`
     data type defined early in code (a named tuple). A `stack`
@@ -80,7 +82,39 @@
   * rest of methods need not be altered, and result is deterministic
     based on parameters supplied above. These methods simply call the
     appropriate helper methods to do dirty work in traversing your
-    specified structure.  
+    specified structure.
+
+### evalField:
+  * given defined stack and spectral range, this method returns all information
+    associated with the e-field resultant in the device.
+  * `INPUT`:
+    * `stack`: defined above; a list of the `film` data type.
+    * `wls`: defined above; a linspace of wavelengths in nm.
+    * `angles`: defined above; a list of angles in **RADIANS**.
+    * `pol`: polarization; 0 for p-polarization; 1 for s-polarization.
+    * `n_i`: optical index of material preceding stack
+    * `n_f`: optical index of material following stack
+    * `indices`: for each wavelength in `wls`, and for each layer in `stack`,
+      a two dimensional list giving (possibly complex, i.e. attenuation and 
+      phase coefficient) optical index.
+    * `t_angles`: for each layer, wavelength, and angle from their respective
+      data structures, a three dimensional list of resultant angles following
+      Snell's law via the `snell` method.
+    * `P`: propagation matrix; a two dimensional square matrix indicating phase
+      and amplitude change of incident waves. Indexed in multi-dimensional
+      array by layer, wavelength, angle, and polarization in that order.
+    * `I`: interface matrix: a two dimensional square matrix indicating
+      reflection and transmission between layers. Same indexing as `P`.
+  * `RETURN`:
+    * `E_0`: calculated incident and reflected electric field, given as a two
+      dimensional vector whose elements indicate magnitude of right and left 
+      moving plane-waveforms. 
+    * `E_f`: calculated transmitted electric field, using same protocol as
+      above.
+    * `E_i`: list of e-field present at forward edge of indexed layer, which
+      may then be propagated forward by methods like EsqPlot for display.
+    * this method as well as `evalTR` follow closely the matrix transfer method
+      defined in Pettersson et al. (JAP 1999). 
 
 #######################################
 ## AUTOOPTIMIZE METHODS:
@@ -124,6 +158,10 @@
       same form populating `activeCells`. Float is accompanying fitness of
       cell. All heuristic decisions are made off this data structure.
     * `optimum`     : single element of fitnessMap, largest float parameter.
+  * `RETURN`:
+    * tuple comprising `newState`, `newActive`, and `newOptimum`.
+    * these are modified **COPIES** of original input, allowing for sequential
+      feeding of method's output into itself. See INPUT for data types.
   * `propagate` makes copies of its inputs, and should **NEVER** modify them. when
     modifying propagate, two main section should be accessed first, forming
     the core of the heuristic:
@@ -151,10 +189,6 @@
         methods, be aware of variable mutation, checking cell validity, and
         maintaining active cells not otherwise being accessed. Future room
         for modifications centers in better maintenance of active cells.
-  * `RETURN`:
-    * tuple comprising `newState`, `newActive`, and `newOptimum`.
-    * these are modified **COPIES** of original input, allowing for sequential
-      feeding of method's output into itself. See INPUT for data types.
 
 ### evaluateCells:
   * this is the workhorse method for porting into `thinFilmClean.py` in order
@@ -165,6 +199,8 @@
     * `activeLayer`: layer in stack by zero index whose value is to be somehow
       manipulated by evaluateCells to be largest if said coordinate is deemed
       optimal.
+  * `RETURN`:
+    * `fitnessMap`: defined above.
   * `evaluateCells` calls on elements in stack to create a new list of films
     compatible with the `portFilm` data type defined in the preamble. This data
     type corresponds to the `film` data type of `thinFilmClean.py`. This new
@@ -173,18 +209,17 @@
     If one for example wished to minimize transmission, one could feed some
     monotone decreasing function of transmission into the second element of
     the tuples then fed into fitnessMap.
-  * `RETURN`:
-    * `fitnessMap`: defined above.
 
 ### prettyPrint:
-  * `INPUT`:
-    * `currentState`: defined above.
-    * `dim1`, `dim2`: integers detailing slicing dimensions. They should be
-      **DIFFERENT**, and between 0 and n - 1 inclusive for n-layer stack.
   * for quick debugging of the heuristic, this allows the display of the
     `dim1`-`dim2` plane with `0 -> " ", 1 -> ".", 2 -> "#"`. When space is taken
     to be two dimensional (e.g. all but two layers of stack are given set
     measurement), this allows visualization of whole space and activity of 
     heuristic in traversal. Method stands on its own due to clumsiness of
     slicing ndarray data type.
+  * `INPUT`:
+    * `currentState`: defined above.
+    * `dim1`, `dim2`: integers detailing slicing dimensions. They should be
+      **DIFFERENT**, and between 0 and n - 1 inclusive for n-layer stack.
   * `RETURN`: IO, prints to terminal.
+
