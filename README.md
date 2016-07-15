@@ -6,10 +6,10 @@
 
 > *Giustizia mosse il mio alto fattore;* <br/>
 > *fecemi la divina podestate,* <br/>
-> *la somma sapïenza e'l primo amore.* <br/><br/>
+> *la somma sapïenza e 'l primo amore.* <br/><br/>
 > *Dinanzi a me non fuor cose create* <br/>
 > *se non etterne, e io etterno duro.* <br/>
-> *Lasciate ogne speranza, voi ch'intrate'* <br/>
+> *Lasciate ogne speranza, voi ch'intrate.* <br/>
 
 #######################################
 ## PRIMARY USES & SUMMARY: 
@@ -107,8 +107,8 @@
       a two dimensional list giving (possibly complex, i.e. attenuation and 
       phase coefficient) optical index.
     * `t_angles`: for each layer, wavelength, and angle from their respective
-      data structures, a three dimensional list of resultant angles following
-      Snell's law via the `snell` method.
+      data structures, a three dimensional list of resultant trasnmitted 
+      angles following Snell's law via the `snell` method.
     * `P`: propagation matrix; a two dimensional square matrix indicating phase
       and amplitude change of incident waves. Indexed in multi-dimensional
       array by layer, wavelength, angle, and polarization in that order.
@@ -137,17 +137,19 @@
       one wishes to maximize the e-field integral over. Currently this is 
       implemented for one active layer only, although this can be changed
       with relative ease in accompanying methods (namely, evaluate Cells)
-    * `DIVISIONS`: seeds space with (`DIVISIONS` + 1) active cells evenly spaced
-      along each dimension of the search space, taking the cartesian product
+    * `DIVISIONS`: seeds space with (`DIVISIONS + 1`) active cells evenly spaced
+      along each dimension, taking in essence the cartesian product
       of these one dimensional intervals, and thus seeding a lattice. Higher
-      value increases search time per propagation, but give shorter path to
-      possible optima
+      value increases search time per propagation, but gives shorter path to
+      possible optima. The best heuristic is to have a displacement between 
+      far apart seeds be not more than an order of magnitude larger than 
+      `MAX_STEP`.
   * search space is then instantiated to proper size according to stack, and
     values specified above.
   * code propagates either `MAX_STEP` times, or until there are no active cells
     (if you feel you are running low on active cells too soon, see 
-    selectedNeighbors subsection of propagate method). Output is list of best
-    cells per propagation, listing coordinates first, and then fitness of
+    selectedNeighbors subsection of propagate method). Output is list of the 
+    best cell per propagation, listing coordinates first and then fitness of
     said cell. Final output give numerical information on traversal of space.
 
 ### propagate:
@@ -171,8 +173,8 @@
     * tuple comprising `newState`, `newActive`, and `newOptimum`.
     * these are modified **COPIES** of original input, allowing for sequential
       feeding of method's output into itself. See INPUT for data types.
-  * `propagate` makes copies of its inputs, and should **NEVER** modify them. when
-    modifying propagate, two main section should be accessed first, forming
+  * `propagate` makes copies of its inputs, and should **NEVER** modify them. 
+    when modifying propagate, two main section should be accessed first, forming
     the core of the heuristic:
       * `selectedCells`    : those cells which are chosen to determine the
         fitness of some of their neighbors. these cells are chosen from the
@@ -183,10 +185,10 @@
         modified as seen fit.
       * `selectedNeighbors`: those cells which are traveled to from above
         `selectedCells`. Currently the code chooses which direction to travel
-        based on barycentric methods and threshold values. Note, **ALWAYS** check
-        `hasTraversed` of cell before propagating to it. This incorporates both
-        boundaries and previously traversed cells. The code will throw errors
-        if you do not, and you will lament your previous blasé existence.
+        based on barycentric methods and threshold values. Note, **ALWAYS** 
+        check `hasTraversed` of cell before propagating to it. This incorporates 
+        both boundaries and previously traversed cells. The code will throw 
+        errors if you do not, and you will lament your previous blasé existence.
         Currently, simply modifying how `properDim` is selected is an easy path
         for modifying the heuristic.
           - `properDim` is boolean n-element array detailing which of the n
@@ -218,6 +220,79 @@
     If one for example wished to minimize transmission, one could feed some
     monotone decreasing function of transmission into the second element of
     the tuples then fed into fitnessMap.
+
+### hasTravsered:
+  * checks if input cell has been traversed or is invalid choice.
+  * `INPUT`:
+    * `currentState`: defined above.
+    * `coords`: a coordinate tuple of dimension equal to the length of `stack`.
+  * `RETURN`:
+    * Boolean: `True` is cell has value `1`,`2`, **OR** coordinate is invalid.
+      `False` otherwise (namely cell has value `0`).
+
+### travserseDim:
+  * propagates from cell in specified direction a specified distance, returns
+    new state and new active cell.
+  * `INPUT`:
+    * `currentState`: defined above.
+    * `activeCell`: coordinate tuple of central cell to be traveled from.
+    * `dim`: between `0` and `len(stack) - 1` inclusive. Specifies axis of
+      travel. Method checks if this is a valid choice, and will throw error
+      if not.
+    * `step`: integer which specifies distance of travel along `dim`. Method
+      checks if this is in conjunction with `dim` is a valid position, 
+      and will throw error if not.
+  * `RETURN`:
+    * tuple consisting of those values found below.
+    * `newState`: state with `activeCell` position changed to `1` and new site
+      of activity changed to `2`.
+    * `newCoord`: tuple coordinate of new active cell from traversal.
+
+### getNeighborCells:
+  * returns **ALL** coordinates of neighboring cells adjacent by a face in 
+    n-dimensional search space. This includes **INVALID** coordinates not in 
+    space.
+  * `INPUT`:
+    * `coords`: coordinates of cell around which neighbors are pulled.
+  * `RETURN`:
+    * list of tuple coordinates of possibly invalid neighbors. This is a lazy
+    neighbor search because **EVERYTHING** must be run through `hasTraversed`
+    in `propagate`.
+
+### getCoordinateCenter:
+  * returns weighted or unweighted centroid of a list of cell positions and 
+    fitnesses.
+  * `INPUT`:
+    * `fitnessMap`: defined above; a list of tuples of tuple coordinates and 
+    fitnesses.
+    * `isWeighted`: boolean `True` is barycenter is desired, `False` if centroid
+    is desired.
+  * `RETURN`:
+    * tuple coordinate of weighted or unweighted center determined by 
+    `isWeighted`.
+
+### getCenterOffset:
+  * small helper method to return difference between centroid and barycenter.
+  That is, the coordinate `getCoordinateCenter(fitnessMap, True)` less 
+  `getCoordinateCenter(fitnessMap, True)`. For ease in heuristic. 
+  * `INPUT`:
+    * `fitnessMap`: defined above; a list of tuples of tuple coordinates and 
+    fitnesses.
+  * `RETURN`:
+    * tuple representing vector difference between centroid and barycenter: 
+      specifically, barycenter less centroid.
+
+### getFittestPercent:
+  * given `fitnessMap` and a percentage, return a revised `fitnessMap`
+    containing only the top percentage of its original elements.
+  * `INPUT`:
+    * `fitnessMap`: defined above.
+    * `percent`: a numerical value between `1` and `100` (complain all you want
+      about non-unity percentage base).
+  * `RETURN`:
+    * list of tuples of tuple coordinates and fitness values. This must 
+      **ALWAYS** be unpacked before direct insertion into `selectedCells` in 
+      `propagate`.
 
 ### prettyPrint:
   * for quick debugging of the heuristic, this allows the display of the

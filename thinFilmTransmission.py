@@ -48,17 +48,17 @@ def main():
     plotTRspectrum = False
 
     #option to evaluate E^2 integral in active layer and plot spectrum
-    evalESQint = True
+    evalESQint = False
     #option to plot E^2 throughout structure
-    plotESQ = False
+    plotESQ = True
 
     """ENTER INCIDENT LIGHT PARAMS AND ENVIRONMENT INDICES HERE"""
 
     # measurements in nm
     # note that use of linespace is required currently for spectrum plots
     # this can be circumvented.
-    wls = linspace(3000, 6000, 300)
-    # wls = linspace(4050, 4050, 1)
+    # wls = linspace(1000, 10000, 800)
+    wls = linspace(4000, 4000, 1)
     # currently unnacepting of angle variation
     # angle represents CCW rotation from direction of propagation
     angles = (pi/180)*array([0.0])
@@ -91,17 +91,18 @@ def main():
     # Average E^2 integral in active layer (CQD): 
     # [82.01202593364928, 245.38468092862215, 3504.612761494427, 0.9749937541718504]
 
-    # stack = [
-    #         film(50, 'au', 'Gold_1', True, False),
-    #         film(290, 2.4 + 0.106j, 'CQD', True, False),
-    #         film(50, 'au', 'Gold_2', True, True)
-    #         ]
-
     stack = [
-            film(4000, 1.4, 'SiO2_1', True, True),
-            film(4000, 1.4, 'SiO2_2', True, True),
-            film(4000, 1.4, 'SiO2_3', True, False)
+            film(50, 'au', 'Gold_1', True, False),
+            film(290, 2.4 + 0.106j, 'CQD', True, False),
+            film(50, 'au', 'Gold_2', True, True), # planar symmetric layer
+            film(100,3.42, 'Silicon', True, False)
             ]
+
+    # stack = [
+    #         film(4000, 1.4, 'SiO2_1', True, True),
+    #         film(4000, 1.4, 'SiO2_2', True, True),
+    #         film(4000, 1.4, 'SiO2_3', True, False)
+    #         ]
 
     ###########################################################
     # Main processes and evaluation
@@ -264,15 +265,15 @@ def snell(indices, angles, n_i, n_f):
 """Allows for homogenous 2-dimensional lattice properties, altering transmission of
 layer drastically based on incident wavelength. Returns value between 0 and 1 float."""
 def getTransmission(wavelength, layerIndex):
-    maximum = 1.0                       # maximum amplitude
+    maximum = 0.8                       # maximum amplitude
     sigma   = 500/(2*sqrt(2*log(2)))    # gaussian sigma
-    if layerIndex == 0:
+    if layerIndex == 2:
         offset = 4000                   # maximum wavelength
-    elif layerIndex == 1:
-        offset  = 4250                  # maximum wavelength
+    elif layerIndex == -1:
+        offset  = 4300                  # maximum wavelength
     else:
         raise ValueError("no transmission map specified for layer index: " + str(layerIndex))
-    zeropoint = 1.0e-6                  # prevent nan return for low t
+    zeropoint = 1.0e-6                  # prevent overflow for low t
     return maximum*exp(-1.0*(wavelength-offset)**2/(2*sigma**2)) + zeropoint
 
 """Returns 4D lists of P and I matrices indexed by (layer number, wavelength, 

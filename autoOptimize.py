@@ -45,7 +45,7 @@ portFilm = namedtuple('layer',['depth','index','name','active'])
 stack = [
         film(0, 1.399, 'SiO2', 95, 95, 10.0, False),
         film(0, itoDrudeParams, 'ITO', 5, 450, 10.0, False),
-        film(0, 2.4 + 0.106j, 'CQD', 200, 700, 10.0, False),
+        film(0, 2.4 + 0.106j, 'CQD', 350, 850, 10.0, False),
         film(0, 'au', 'Gold', 200, 200, 10.0, False)
         ]
 # number of layers in stack
@@ -140,7 +140,7 @@ def propagate(currentState, activeCells, fitnessMap, optimum):
         percentage = 70
         # print "level 1"
     elif len(activeCells) < 100:
-        percentage = 30
+        percentage = 15
         # print "level 2"        
     elif len(activeCells) < 200:
         percentage = 10
@@ -206,6 +206,8 @@ def getCenterOffset(fitnessMap):
 
 # returns top % performing active cells
 def getFittestPercent(fitnessMap, percent):
+    if percent < 0 or percent > 100:
+        raise ValueError("Invalid percentage choice: must be within [0,100].")
     # revere sort fitnessMap by fitness
     sortedMap = sorted(fitnessMap, key=lambda elem: elem[1], reverse=True)
     lenMap    = int((percent/100.0)*len(sortedMap))
