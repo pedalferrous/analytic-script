@@ -115,6 +115,13 @@ def main():
     # Average E^2 integral in active layer (CQD): 
     # [4477.880418884087, 122.29409960678106, 2790.1956874447324, 1.6006346413216146]
 
+    # model of the old device using a gold back contact
+    #stack = [
+    #        film(6.0, 'NiCr-avg', 'NiCr approximation', False),
+    #        film(300.0, 2.4 + 0.106j, 'CQD', True),
+    #        film(15.0, 'au', 'Gold', False)
+    #        ]
+
     # input from experimental data
     stack = [
             film(840, 1.399, 'SiO2', False),
@@ -122,7 +129,6 @@ def main():
             film(525, 2.4 + 0.106j, 'CQD', True),
             film(50, 'au', 'Gold', False)
             ]
-
 
     ###########################################################
     # Main processes and evaluation
@@ -178,17 +184,28 @@ def main():
 
     # do not use with standard list wls
     if evalESQint:
-        (ESqInt,ESqIntAvg) = ESqIntEval(stack,wls,angles,pols,indices,E_i)
+        (ESqInt,ESqIntAvg, PAbsd, PAbsdAvg) = ESqIntEval(stack,wls,angles,pols,indices,E_i)
+        PAbsdTot = 0.0
+        PAbsdActive = 0.0
 
         for i in range(len(stack)):
+            PAbsdTot += PAbsdAvg[i]
+
             if stack[i].active:
                 print 'Average E^2 integral in active layer ({0}): {1}'.format(
                     stack[i].name,ESqIntAvg[i])
+                print 'Average absorbed power in active layer ({0}): {1}'.format(
+                    stack[i].name,PAbsdAvg[i])
+                PAbsdActive += PAbsdAvg[i]
             if save:
                 saveFile.write('Average E^2 integral in active layer ({0}): {1}\n'.format(
                     stack[i].name,ESqIntAvg[i]))
+                saveFile.write('Average absorbed power in active layer ({0}): {1}\n'.format(
+                    stack[i].name,PAbsdAvg[i]))
 
-        ESqIntSpectrumPlot(ESqInt, stack, wls, angles, pols, indices, save, saveFileName)
+        print 'EQE/IQE = {0}'.format((PAbsdActive/PAbsdTot)*(1-TAvg-RAvg))
+
+        ESqIntSpectrumPlot(ESqInt, PAbsd, stack, wls, angles, pols, indices, save, saveFileName)
 
     if plotESQ:  
         ESqPlot(E_i, stack, wls, angles, pols, indices, save, saveFileName)
@@ -490,14 +507,28 @@ def ESqIntEval(stack, wls, angles, pols, indices, E_i):
         for k in range(len(angles))]
         for j in range(len(wls))]
         for i in range(len(stack))]
+    #value proportional to power absorbed in layer
+    #use proportionality to real index, imag index, and 1/lambda from Petersson eqn. 22
+    PAbsd = [[[[real(indices[i][j])*imag(indices[i][j])*ESqInt[i][j][k][l]*(10000.0/wls[j])
+        for l in range(len(pols))] 
+        for k in range(len(angles))]
+        for j in range(len(wls))]
+        for i in range(len(stack))]
     # for use with blackbody source
-    # ESqIntAvg = [sum(weightSpectrum(j, wls, peakWavelength, blackbody)*ESqInt[i][j][k][l] 
-    ESqIntAvg = [sum(ESqInt[i][j][k][l] 
+    ESqIntAvg = [sum(weightSpectrum(j, wls, peakWavelength, blackbody)*ESqInt[i][j][k][l] 
+    #ESqIntAvg = [sum(ESqInt[i][j][k][l] 
         for j in range(len(wls))
         for k in range(len(angles))
         for l in range(len(pols)))/(len(wls)*len(angles)*len(pols))
         for i in range(len(stack))]
-    return (ESqInt, ESqIntAvg)
+    # for use with blackbody source
+    PAbsdAvg = [sum(weightSpectrum(j, wls, peakWavelength, blackbody)*PAbsd[i][j][k][l] 
+    #PAbsdAvg = [sum(PAbsd[i][j][k][l] 
+        for j in range(len(wls))
+        for k in range(len(angles))
+        for l in range(len(pols)))/(len(wls)*len(angles)*len(pols))
+        for i in range(len(stack))]
+    return (ESqInt, ESqIntAvg, PAbsd, PAbsdAvg)
 
 """Plot T and R as a function of angle.
 Averages over wls are n_angles x n_pols"""
@@ -605,7 +636,7 @@ def TRSpectrumPlot(T,R,wls,angles,save,saveFileName,tPlot=True,
     return (k_0, RAnglPolAvg, TAnglPolAvg)
 
 """Plot spectrum of the E^2 integral"""
-def ESqIntSpectrumPlot(ESqInt, stack, wls, angles, pols, indices, save, saveFileName):
+def ESqIntSpectrumPlot(ESqInt, PAbsd, stack, wls, angles, pols, indices, save, saveFileName):
     ax = plt.axes()
 
     wnums = (1.0e7/wls) #wavenumbers in cm^-1 to be used in plotting
@@ -616,11 +647,16 @@ def ESqIntSpectrumPlot(ESqInt, stack, wls, angles, pols, indices, save, saveFile
                 for k in range(len(angles))
                 for l in range(len(pols)))/(len(angles)*len(pols))
                 for j in range(len(wls))]
-            ax.plot(wnums, ESqIntWls, label=stack[i].name)
+            PAbsdWls = [sum(PAbsd[i][j][k][l]
+                for k in range(len(angles))
+                for l in range(len(pols)))/(len(angles)*len(pols))
+                for j in range(len(wls))]
+            ax.plot(wnums, ESqIntWls, label='{0} layer $\int E^2$'.format(stack[i].name))
+            ax.plot(wnums, PAbsdWls, label='{0} layer power absorbed'.format(stack[i].name))
 
     ax.legend()
     ax.set_xlabel('Wavenumber (cm$^-1$)', fontsize=18)
-    ax.set_ylabel('$E^2$ integral (arb. units)', fontsize=18)
+    ax.set_ylabel('(arb. units)', fontsize=18)
     plt.xticks(fontsize=15)
     plt.yticks(fontsize=15)
     if save:
