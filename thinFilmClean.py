@@ -44,10 +44,10 @@ def main():
 
     #options to plot T/R as function of angle or incident wavelength
     plotTRangle = False
-    plotTRspectrum = True
+    plotTRspectrum = False
 
     #option to evaluate E^2 integral in active layer and plot spectrum
-    evalESQint = False
+    evalESQint = True
     #option to plot E^2 throughout structure
     plotESQ = False
 
@@ -56,7 +56,7 @@ def main():
     # measurements in nm
     # note that use of linespace is required currently for spectrum plots
     # this can be circumvented.
-    wls = linspace(1500, 12000, 1000)
+    wls = linspace(1000, 12000, 1000)
     # wls = linspace(4000, 4000, 1)
     # currently unnacepting of angle variation
     # angle represents CCW rotation from direction of propagation
@@ -98,20 +98,20 @@ def main():
     # computer optimized stack (courtesy of autoOptimize)
     # stack = [
     #         film(95, 1.399, 'SiO2', True),
-    #         film(130, itoDrudeParams, 'ITO', True),
+    #         film(130, itoDrudeParams, 'ITO', False),
     #         film(640, 2.4 + 0.106j, 'CQD', True),
-    #         film(200, 'au', 'Gold', True)
+    #         film(200, 'au', 'Gold', False)
     #         ]
     # Average E^2 integral in active layer (CQD): 
     # [82.01202593364928, 245.38468092862215, 3504.612761494427, 0.9749937541718504]
 
     # original hand-optimized stack
-    # stack = [
-    #         film(745, 1.399, 'SiO2', False),
-    #         film(10, itoDrudeParams, 'ITO', False),
-    #         film(410, 2.4 + 0.106j, 'CQD', True),
-    #         film(50, 'au', 'Gold', False)
-    #         ]
+    stack = [
+            film(745, 1.399, 'SiO2', True),
+            film(10, itoDrudeParams, 'ITO', False),
+            film(410, 2.4 + 0.106j, 'CQD', True),
+            film(50, 'au', 'Gold', False)
+            ]
     # Average E^2 integral in active layer (CQD): 
     # [4477.880418884087, 122.29409960678106, 2790.1956874447324, 1.6006346413216146]
 
@@ -123,12 +123,12 @@ def main():
     #        ]
 
     # input from experimental data
-    stack = [
-            film(840, 1.399, 'SiO2', False),
-            film(50, itoDrudeParams, 'ITO', False),
-            film(525, 2.4 + 0.106j, 'CQD', True),
-            film(50, 'au', 'Gold', False)
-            ]
+    # stack = [
+    #         film(840, 1.399, 'SiO2', False),
+    #         film(50, itoDrudeParams, 'ITO', False),
+    #         film(525, 2.4 + 0.106j, 'CQD', True),
+    #         film(50, 'au', 'Gold', False)
+    #         ]
 
     ###########################################################
     # Main processes and evaluation
@@ -214,7 +214,6 @@ def main():
 May be real, complex, or interpolated from list by wavelength. 
 If the index is a list of Drude model parameters, feed them to drude() 
 to get the index.
-
 Note on units: the save files store wavelengths in microns so there is a conversion factor"""
 def indexLookup(index, wl):
     if isinstance(index, float) or isinstance(index, complex):
@@ -267,7 +266,6 @@ the angles transmitted in each layer (n_layers+1 x n_wavelengths x n_angles).
 In this case the layer index refers to the stack layer with that index (eg 
 t_angles[0] gives transmission angles in the first layer).  The final layer
 index gives the transmission angle in the final medium (n_f).
-
 This could also be done implicitly in the calculation of the matrices 
 (see Pettersson) but I don't think there is a computational advantage, and
 this way the list of angles is accessible in case it is ever useful
@@ -301,12 +299,10 @@ def snell(indices, angles, n_i, n_f):
 
 """Returns 4D lists of P and I matrices indexed by (layer number, wavelength, 
 incidence angle, polarization [for I matrices]).  
-
 Because there are (n_layers + 1) I-matrices, the first index of the list of 
 I matrices runs from 0 to n_layers and refers to the matrix before (entering) 
 the layer to which the index corresponds, eg I[0] is for the interface from the
 inital medium into the first layer.
-
 P matrix index corresponds to the layer in which propagation occurs"""
 def genMatrices(stack, wls, angles, n_i, n_f, indices, t_angles):
     I = []  

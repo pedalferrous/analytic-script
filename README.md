@@ -227,7 +227,7 @@
     * `currentState`: defined above.
     * `coords`: a coordinate tuple of dimension equal to the length of `stack`.
   * `RETURN`:
-    * Boolean: `True` is cell has value `1`,`2`, **OR** coordinate is invalid.
+    * Boolean: `True` if cell has value `1`,`2`, **OR** coordinate is invalid.
       `False` otherwise (namely cell has value `0`).
 
 ### travserseDim:

@@ -44,7 +44,7 @@ portFilm = namedtuple('layer',['depth','index','name','active'])
 
 stack = [
         film(0, 1.399, 'SiO2', 95, 95, 10.0, False),
-        film(0, itoDrudeParams, 'ITO', 5, 450, 10.0, False),
+        film(0, itoDrudeParams, 'ITO', 5, 200, 5.0, False),
         film(0, 2.4 + 0.106j, 'CQD', 350, 850, 10.0, False),
         film(0, 'au', 'Gold', 200, 200, 10.0, False)
         ]
@@ -73,6 +73,7 @@ def getNeighborCells(coords):
     dim = len(arrayCoords)
     basis = identity(dim,dtype=int)
     # orthogonal neighbors
+    # tuple of ((dim, step), coord)
     neighborsAdd = [((i, 1),tuple(add(arrayCoords,      basis[i,:]))) for i in range(dim)]
     neighborsSub = [((i,-1),tuple(add(arrayCoords, (-1)*basis[i,:]))) for i in range(dim)]
     # final concatenation and return
@@ -138,22 +139,76 @@ def propagate(currentState, activeCells, fitnessMap, optimum):
     # then grade to more selective
     if len(activeCells) < 24:
         percentage = 70
-        # print "level 1"
+        print "level 1 population"
     elif len(activeCells) < 100:
-        percentage = 15
-        # print "level 2"        
+        percentage = 5
+        print "level 2 population"        
     elif len(activeCells) < 200:
-        percentage = 10
-        # print "level 3"        
+        percentage = 5
+        print "level 3 population"        
     else:
         percentage = 5
-        # print "level 4"    
+        print "level 4 population"    
     # print "active cells: " + str(len(activeCells))    
     fittestPercent = getFittestPercent(fitnessMap, percentage)
     selectedCells  = map(lambda elem: elem[0], fittestPercent) 
 
+    print "fittestPercent " + str(fittestPercent)
+    print "selectedCells  " + str(selectedCells)
+
+
+    ###################################################
+    # CURRENTLY MODIFIED FOR GREEDY HILL CLIMBING
+    ###################################################
+    # bestGroup   = getFittestPercent(fitnessMap, 0)
+    # fittestCells = map(lambda elem: elem[0], bestGroup)
+   
+    # print "bestGroup   " + str(bestGroup)
+    # print "fittestcell " + str(map(lambda elem: elem[0], bestGroup))
+
+    # directNeighbors = []
+
+    # # remember that fittestcell is a list of the one (1) fittest cell
+    # fittestCell = fittestCells[0]
+    # # remember to update grid
+    # newState[fittestCell] = 1
+    # neighbor = getNeighborCells(fittestCell)
+    
+    # print "neighbors1  " + str(neighbor)
+
+    # # populate with all valid neighbors
+    # for elem in neighbor:
+    #     coords = elem[1]
+    #     if not hasTraversed(newState, coords):
+    #         directNeighbors.append(coords)
+    #     else:
+    #         continue
+    # pseudoFitness = evaluateCells(directNeighbors, 2)
+    # greedyCoord   = getFittestPercent(pseudoFitness, 0)
+
+    # if len(greedyCoord) == 1:
+    #     vdiff = subtract(greedyCoord[0][0], fittestCell)
+    #     dim  = filter(lambda elem: elem != 0, [i if vdiff[i] != 0 else 0 for i in range(len(vdiff))])[0]
+    #     step = 1 if vdiff[dim] > 0 else -1 if vdiff[dim] < 0 else 0
+    #     bestCoord = ((dim, step),greedyCoord[0][0])
+    #     if not hasTraversed(newState, bestCoord):
+    #         # traverse dim alters newState correctly and continuously
+    #         (newState, newCoord) = traverseDim(newState, 
+    #             fittestCell, dim, step)
+    #         newActive.append(newCoord)
+    ###################################################
+    # CURRENTLY MODIFIED FOR GREEDY HILL CLIMBING
+    ###################################################    
+
+
+
+
+
+
+
     for cell in selectedCells: # loop over most promising
         neighbors      = getNeighborCells(cell)
+        print "neighbors2  " + str(neighbors)
         newState[cell] = 1 # mark current cell as visited + inactive
         # SLOW: consider replacement by portion of split list from selectedCells
         newActive.remove(cell)
@@ -170,6 +225,9 @@ def propagate(currentState, activeCells, fitnessMap, optimum):
         threshold = 0.003
         minActive = 10
         properDim = map(lambda elem: True if abs(elem) >= threshold else False, offset)
+
+
+
         signDim   = map(lambda elem: 1 if elem >= 0 else -1, offset)
         # if no clear advantageous direction, or lack of activity, simple floodfill
         if not any(properDim) or len(activeCells) < minActive:
@@ -178,20 +236,25 @@ def propagate(currentState, activeCells, fitnessMap, optimum):
 
         for elem in neighbors:
             # check if dim is proper and movement in right direction
-            # elem[0][0] is dim, elem[0][1] is step
-            if properDim[elem[0][0]] and signDim[elem[0][0]]*elem[0][1] >= 0:
+            dim  = elem[0][0]
+            step = elem[0][1]
+            if properDim[dim] and signDim[dim]*step >= 0:
                 selectedNeighbors.append(elem)
 
         ###############################
         # code for basic propagation (independent of heuristc)
         ###############################
+
         for auxCell in selectedNeighbors:
             # second element in tuple gives coordinates
             # checks against newState, being continuously altered
-            if not hasTraversed(newState, auxCell[1]):
+            coord = auxCell[1]
+            dim   = auxCell[0][0]
+            step  = auxCell[0][1]
+            if not hasTraversed(newState, coord):
                 # traverse dim alters newState correctly and continuously
                 (newState, newCoord) = traverseDim(newState, 
-                    cell, auxCell[0][0], auxCell[0][1])
+                    cell, dim, step)
                 newActive.append(newCoord)
             else:
                 continue
@@ -216,6 +279,12 @@ def getFittestPercent(fitnessMap, percent):
         return sortedMap[0:1]
     else:
         return sortedMap[0:lenMap]
+
+    # used to keep population of chosen cells high
+    # if len(sortedMap) < 4:
+    #     return sortedMap
+    # else:
+    #     return sortedMap[0:4]
 
 # finds weghted or unweighted coordinate center
 def getCoordinateCenter(fitnessMap, isWeighted):
@@ -282,7 +351,7 @@ def evaluateCells(activeCells, activeLayer):
             t_angles, 
             P, 
             I)
-        (ESqInt,ESqIntAvg) = thinFilmClean.ESqIntEval(
+        (ESqInt,ESqIntAvg, PAbsd, PAbsdAvg) = thinFilmClean.ESqIntEval(
             portStack,
             wls,
             angles,
@@ -322,15 +391,17 @@ def prettyPrint(currentState, dim1, dim2):
 
 def main():
 
-    MAX_STEP     = 400 # hard cutoff for propagations
+    MAX_STEP     = 100 # hard cutoff for propagations
     ACTIVE_LAYER = 2  # which layer in stack active (zero-index)
     DIVISIONS    = 4  # active cells per dimension (cartesian product base)
+    
     # same size as searchSpace
     # 0: unvisited, 1: visited + inactive
     # 2: visited + active.
     currentState = zeros([int((stack[i].max_depth
         -stack[i].min_depth)/stack[i].discrete_depth)+1 
             for i in range(layerNum)])
+
     # index of starting point (permits multuple seed locations)
     # list of tuples: ALL cell coordinate are tuples
     initialPosition = []
