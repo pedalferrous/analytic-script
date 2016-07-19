@@ -137,68 +137,73 @@ def propagate(currentState, activeCells, fitnessMap, optimum):
 
     # begin search with utilization of all active cells
     # then grade to more selective
-    if len(activeCells) < 24:
-        percentage = 70
+    if len(activeCells) < 20:
+        percentage = 50
         print "level 1 population"
-    elif len(activeCells) < 100:
-        percentage = 5
+    elif len(activeCells) < 30:
+        percentage = 30
         print "level 2 population"        
-    elif len(activeCells) < 200:
-        percentage = 5
+    elif len(activeCells) < 40:
+        percentage = 15
         print "level 3 population"        
     else:
         percentage = 5
         print "level 4 population"    
-    # print "active cells: " + str(len(activeCells))    
+
     fittestPercent = getFittestPercent(fitnessMap, percentage)
-    selectedCells  = map(lambda elem: elem[0], fittestPercent) 
+    # selectedCells  = map(lambda elem: elem[0], fittestPercent) 
 
-    print "fittestPercent " + str(fittestPercent)
-    print "selectedCells  " + str(selectedCells)
 
 
     ###################################################
     # CURRENTLY MODIFIED FOR GREEDY HILL CLIMBING
     ###################################################
-    # bestGroup   = getFittestPercent(fitnessMap, 0)
-    # fittestCells = map(lambda elem: elem[0], bestGroup)
-   
-    # print "bestGroup   " + str(bestGroup)
-    # print "fittestcell " + str(map(lambda elem: elem[0], bestGroup))
+    # the original error in below section involved lack of 
+    # self removal from selected cells, as well as accidental
+    # modification by display method!!!
+    # checking if there is only one active cell, 
+    # which bypasses below method
+    if len(fittestPercent) > 1:
+        selectedCells  = map(lambda elem: elem[0], fittestPercent[1:]) 
+        bestGroup   = [fittestPercent[0]]
+        fittestCells = map(lambda elem: elem[0], bestGroup)
+       
+        directNeighbors = []
 
-    # directNeighbors = []
+        # remember that fittestcell is a list of the one (1) fittest cell
+        fittestCell = fittestCells[0]
+        # remember to update grid !
+        newState[fittestCell] = 1
+        newActive.remove(fittestCell)
 
-    # # remember that fittestcell is a list of the one (1) fittest cell
-    # fittestCell = fittestCells[0]
-    # # remember to update grid
-    # newState[fittestCell] = 1
-    # neighbor = getNeighborCells(fittestCell)
-    
-    # print "neighbors1  " + str(neighbor)
+        neighbor = getNeighborCells(fittestCell)
 
-    # # populate with all valid neighbors
-    # for elem in neighbor:
-    #     coords = elem[1]
-    #     if not hasTraversed(newState, coords):
-    #         directNeighbors.append(coords)
-    #     else:
-    #         continue
-    # pseudoFitness = evaluateCells(directNeighbors, 2)
-    # greedyCoord   = getFittestPercent(pseudoFitness, 0)
+        # populate with all valid neighbors
+        for elem in neighbor:
+            coords = elem[1]
+            if not hasTraversed(newState, coords):
+                directNeighbors.append(coords)
+            else:
+                continue
 
-    # if len(greedyCoord) == 1:
-    #     vdiff = subtract(greedyCoord[0][0], fittestCell)
-    #     dim  = filter(lambda elem: elem != 0, [i if vdiff[i] != 0 else 0 for i in range(len(vdiff))])[0]
-    #     step = 1 if vdiff[dim] > 0 else -1 if vdiff[dim] < 0 else 0
-    #     bestCoord = ((dim, step),greedyCoord[0][0])
-    #     if not hasTraversed(newState, bestCoord):
-    #         # traverse dim alters newState correctly and continuously
-    #         (newState, newCoord) = traverseDim(newState, 
-    #             fittestCell, dim, step)
-    #         newActive.append(newCoord)
-    ###################################################
-    # CURRENTLY MODIFIED FOR GREEDY HILL CLIMBING
-    ###################################################    
+        pseudoFitness = evaluateCells(directNeighbors, 2)
+        greedyCoords   = getFittestPercent(pseudoFitness, 100)
+
+        for greedyCoord in greedyCoords:
+            vdiff = subtract(greedyCoord[0], fittestCell)
+            dim  = filter(lambda elem: elem != 0, [i if vdiff[i] != 0 else 0 for i in range(len(vdiff))])[0]
+            step = 1 if vdiff[dim] > 0 else -1 if vdiff[dim] < 0 else 0
+            bestCoord = ((dim, step),greedyCoord[0])
+            if not hasTraversed(newState, bestCoord[1]):
+                # traverse dim alters newState correctly and continuously
+                (newState, newCoord) = traverseDim(newState, 
+                    fittestCell, dim, step)
+                newActive.append(newCoord)
+        ###################################################
+        # CURRENTLY MODIFIED FOR GREEDY HILL CLIMBING
+        ################################################### 
+    else:
+        selectedCells  = map(lambda elem: elem[0], fittestPercent)
 
 
 
@@ -208,7 +213,6 @@ def propagate(currentState, activeCells, fitnessMap, optimum):
 
     for cell in selectedCells: # loop over most promising
         neighbors      = getNeighborCells(cell)
-        print "neighbors2  " + str(neighbors)
         newState[cell] = 1 # mark current cell as visited + inactive
         # SLOW: consider replacement by portion of split list from selectedCells
         newActive.remove(cell)
@@ -377,9 +381,12 @@ def evaluateCells(activeCells, activeLayer):
 # produces prettry planar graph of currentState in dim1-dim2 plane
 # currently does not slice automatically (hard-coded)
 def prettyPrint(currentState, dim1, dim2):
-    sliceParam  = [slice(None) if index == dim1 or index == dim2 else 0 for index in range(len(currentState.shape))]
-    stateSlice  = currentState[sliceParam]
-    prettySlice = map(lambda elem: map(lambda elem: "#" if elem == 2 else "." if elem == 1 else " ", elem), stateSlice)
+    copyState = copy.deepcopy(currentState)
+    sliceParam  = [slice(None) if index == dim1 or index == dim2 else 0 for index in range(len(copyState.shape))]
+    stateSlice  = copyState[sliceParam]
+    specified = 9999
+    stateSlice[25][29] = 9999  
+    prettySlice = map(lambda elem: map(lambda elem: "#" if elem == 2 else "." if elem == 1 else "O" if elem == specified else " ", elem), stateSlice)
     for row in prettySlice:
         for element in row:
             print element,
@@ -391,7 +398,7 @@ def prettyPrint(currentState, dim1, dim2):
 
 def main():
 
-    MAX_STEP     = 100 # hard cutoff for propagations
+    MAX_STEP     = 400 # hard cutoff for propagations
     ACTIVE_LAYER = 2  # which layer in stack active (zero-index)
     DIVISIONS    = 4  # active cells per dimension (cartesian product base)
     
@@ -410,6 +417,8 @@ def main():
     print "\ninterval division of search space: \n" + str(dimIntervals) + "\n"
     initialPosition     = array(meshgrid(*dimIntervals)).T.reshape(-1,len(stateShape))
     initialPosition     = map(lambda elem: tuple(elem), initialPosition)
+
+    initialPosition = [(0,10,10,0)] # heuristic behavior
 
     # list of coordinates for active cells
     activeCells = copy.deepcopy(initialPosition)
