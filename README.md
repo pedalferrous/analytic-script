@@ -153,7 +153,7 @@
     said cell. Final output give numerical information on traversal of space.
 
 ### propagate:
-  * this is the workhorse method of the heuristic search algorithm. all
+  * this is the workhorse method of the heuristic search algorithm. All
     methods called via this method (save `evaluateCells`) will be described
     in short for now, and given full entries later. They will not in standard
     cases need alteration, serving primarily as helpers.
@@ -176,13 +176,50 @@
   * `propagate` makes copies of its inputs, and should **NEVER** modify them. 
     when modifying propagate, two main section should be accessed first, forming
     the core of the heuristic:
+      * heuristic variables:
+        * `threshold`: magnitude of a coordinate difference between centroid 
+          and barycenter which necessitates traveling along said coordinate
+          in signed direction.
+        * `minActive`: minimum required cells needed so that `threshold` comes
+          into effect. Thus, when there are few active cells, propagation
+          direction will become non-selective, resulting in a flood-fill until
+          `minActive` is exceeded.
+        * `selectivity`: argument for the method `getPercentage`, and whose
+           sensible range will obviously vary with the definition of the
+           function called by that method.
+        * `greedPopulation`: maximum population during which the greedy
+          hill-climbing protocol remains in effect. Should be set to something
+          on the same order of magnitude as `minActive`, with the preference
+          being for slightly larger. If this is set to `0`, greediness halts,
+          while if it is set too high, ridges and local maxima will slow
+          propagation speed dramatically.
+        * `percentage`: variable fed into `getFittestPercent`, with a range
+          between `0` and `100` inclusive. Currently set by a call to the
+          aforementioned `getPercentage`, appropriately. 
       * `selectedCells`    : those cells which are chosen to determine the
         fitness of some of their neighbors. these cells are chosen from the
         current active cells. Note, even if cells are not chosen to be within
         `selectedCells`, they should **REMAIN** active for possible future use. 
         currently, the algorithm is set to select varying percentages of the
-        active cells based on fitness alone. This selection criteria can be
-        modified as seen fit.
+        active cells based on their fitness alone (the percentage has now been
+        updated to reference an external method, `getPercentage`, which allows
+        for a smooth function (in this case an overshooting logistic) to
+        modulate how many cells are chosen). This selection criteria can be
+        modified as seen fit, but as a rule of thumb, the number of cells
+        selected per propagation should not dip below 10 or so, lest bottleneck
+        effects occur. 
+      * between these two selections of cells to propagate from, and neighbors
+        of said cells to pick, an auxiliary process has been inserted, with the
+        intent of solving 'gapping' of the space when the barycenter heuristic 
+        is too diffuse. When activated, the insert will, when the size of 
+        `selectedCells` falls below a certain value (namely `greedPopulation`),
+        choose the best cell among `selectedCells` and propagate in every
+        available direction from that cell. This will provide a hill climber
+        effect best used when algorithm has drawn close to a desired extrema. In
+        conjunction with each other, this and the constraints of 
+        `selectedNeighbors` may be joined to produce good global *and* local 
+        performance. Updates are pending as to the best means of optimizing
+        this particular portion of the meta-heuristic.
       * `selectedNeighbors`: those cells which are traveled to from above
         `selectedCells`. Currently the code chooses which direction to travel
         based on barycentric methods and threshold values. Note, **ALWAYS** 

@@ -106,12 +106,12 @@ def main():
     # [82.01202593364928, 245.38468092862215, 3504.612761494427, 0.9749937541718504]
 
     # original hand-optimized stack
-    stack = [
-            film(745, 1.399, 'SiO2', True),
-            film(10, itoDrudeParams, 'ITO', False),
-            film(410, 2.4 + 0.106j, 'CQD', True),
-            film(50, 'au', 'Gold', False)
-            ]
+    # stack = [
+    #         film(745, 1.399, 'SiO2', True),
+    #         film(10, itoDrudeParams, 'ITO', False),
+    #         film(410, 2.4 + 0.106j, 'CQD', True),
+    #         film(50, 'au', 'Gold', False)
+    #         ]
     # Average E^2 integral in active layer (CQD): 
     # [4477.880418884087, 122.29409960678106, 2790.1956874447324, 1.6006346413216146]
 
@@ -129,6 +129,13 @@ def main():
     #         film(525, 2.4 + 0.106j, 'CQD', True),
     #         film(50, 'au', 'Gold', False)
     #         ]
+
+    stack = [
+        film(745, 1.399, 'SiO2', True),
+        film(10, itoDrudeParams, 'ITO', False),
+        film(410, 2.4 + 0.106j, 'CQD', True),
+        film(50, 'au', 'Gold', False)
+        ]
 
     ###########################################################
     # Main processes and evaluation

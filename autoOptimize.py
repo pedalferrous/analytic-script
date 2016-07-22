@@ -43,9 +43,9 @@ film = namedtuple('layer',['depth','index','name',
 portFilm = namedtuple('layer',['depth','index','name','active'])
 
 stack = [
-        film(0, 1.399, 'SiO2', 95, 95, 10.0, False),
-        film(0, itoDrudeParams, 'ITO', 5, 200, 5.0, False),
-        film(0, 2.4 + 0.106j, 'CQD', 350, 850, 10.0, False),
+        film(0, 1.399, 'SiO2', 5, 305, 5.0, False),
+        film(0, itoDrudeParams, 'ITO', 5, 400, 5.0, False),
+        film(0, 2.4 + 0.106j, 'CQD', 360, 860, 5.0, False),
         film(0, 'au', 'Gold', 200, 200, 10.0, False)
         ]
 # number of layers in stack
@@ -58,11 +58,18 @@ stack = [
 #         ]
 
 
-layerNum = len(stack)
+layerNum    = len(stack)
 
 ###########################################################
 # methods for heuristic searching
 ###########################################################
+
+# method to return percentage of cells chosen to be active
+# on a given propagation (returns values between 0 and 100 inclusive)
+def getPercentage(population, selectivity):
+    # return exp(-1.0*population/(selectivity))*100
+    # print population/((1.0 - exp(-1.0*population**2/selectivity**2))*0.1*population + 1.0)
+    return 100.0/((1.0 - exp(-1.0*population**2/selectivity**2))*0.1*population + 1.0)
 
 # takes tuple, returns a list of tuples of tuples, 
 # first element is tuple of (dim, step)
@@ -125,112 +132,116 @@ def hasTraversed(currentState, coords):
 
 # method will expand around active cells according to
 # fitnessMap, returning copies of new state and active
-def propagate(currentState, activeCells, fitnessMap, optimum):
+def propagate(currentState, activeCells, fitnessMap, optimum, ACTIVE_LAYER, selectivity):
+    
+    # threshold for barycenter and minimum active cells for heuristic
+    threshold = 0.003
+    minActive = 10
+    
+    # population selection threshold for cuttoff of greediness
+    greedPopulation = 30
+
+    # selectivity for percentage of population propagated per cycle
+    # currently an argument of propagate for ease of testing
+    # selectivity = 1000
+
+    bestCell   = getFittestPercent(fitnessMap, 0)
     newState   = copy.deepcopy(currentState)
     newActive  = copy.deepcopy(activeCells)
-    newOptimum = max(optimum, getFittestPercent(fitnessMap, 0), key=lambda elem: elem[0][1])
+    newOptimum = max(optimum, bestCell, key=lambda elem: elem[0][1])
+    
     ###################################
     # code for cell choice heuristic
     # possibly deactivating or ignoring them
     ###################################
+
     # selectedCells = activeCells # default
 
     # begin search with utilization of all active cells
     # then grade to more selective
-    if len(activeCells) < 20:
-        percentage = 50
-        print "level 1 population"
-    elif len(activeCells) < 30:
-        percentage = 30
-        print "level 2 population"        
-    elif len(activeCells) < 40:
-        percentage = 15
-        print "level 3 population"        
-    else:
-        percentage = 5
-        print "level 4 population"    
-
+    population     = len(activeCells)
+    percentage     = getPercentage(population, selectivity)
     fittestPercent = getFittestPercent(fitnessMap, percentage)
-    # selectedCells  = map(lambda elem: elem[0], fittestPercent) 
 
-
+    print "cells selected  : " + str(len(fittestPercent))
+    print "greed population: " + str(greedPopulation)
 
     ###################################################
-    # CURRENTLY MODIFIED FOR GREEDY HILL CLIMBING
+    # Code for direct hill climbing mode
+    # percentage required to activate defined above
     ###################################################
-    # the original error in below section involved lack of 
-    # self removal from selected cells, as well as accidental
-    # modification by display method!!!
-    # checking if there is only one active cell, 
-    # which bypasses below method
-    if len(fittestPercent) > 1:
-        selectedCells  = map(lambda elem: elem[0], fittestPercent[1:]) 
-        bestGroup   = [fittestPercent[0]]
-        fittestCells = map(lambda elem: elem[0], bestGroup)
-       
-        directNeighbors = []
+    # selectedCells  = map(lambda elem: elem[0], fittestPercent) # default
 
-        # remember that fittestcell is a list of the one (1) fittest cell
-        fittestCell = fittestCells[0]
-        # remember to update grid !
-        newState[fittestCell] = 1
-        newActive.remove(fittestCell)
+    # determine if few enough cells for greed
+    if len(fittestPercent) < greedPopulation:
+        # if only one cell selected, bypass below and simply select it
+        if len(fittestPercent) > 1:
+            # pass tail of fittest cells to following standard heuristic
+            selectedCells  = map(lambda elem: elem[0], fittestPercent[1:]) 
+            bestGroup   = [fittestPercent[0]]
+            fittestCells = map(lambda elem: elem[0], bestGroup)
+           
+            directNeighbors = []
 
-        neighbor = getNeighborCells(fittestCell)
+            # remember that fittestcell is a list of the one (1) fittest cell
+            fittestCell = fittestCells[0]
+            # remember to update grid !
+            newState[fittestCell] = 1
+            newActive.remove(fittestCell)
 
-        # populate with all valid neighbors
-        for elem in neighbor:
-            coords = elem[1]
-            if not hasTraversed(newState, coords):
-                directNeighbors.append(coords)
-            else:
-                continue
+            neighbor = getNeighborCells(fittestCell)
 
-        pseudoFitness = evaluateCells(directNeighbors, 2)
-        greedyCoords   = getFittestPercent(pseudoFitness, 100)
+            # populate with all valid neighbors
+            for elem in neighbor:
+                coords = elem[1]
+                if not hasTraversed(newState, coords):
+                    directNeighbors.append(coords)
+                else:
+                    continue
 
-        for greedyCoord in greedyCoords:
-            vdiff = subtract(greedyCoord[0], fittestCell)
-            dim  = filter(lambda elem: elem != 0, [i if vdiff[i] != 0 else 0 for i in range(len(vdiff))])[0]
-            step = 1 if vdiff[dim] > 0 else -1 if vdiff[dim] < 0 else 0
-            bestCoord = ((dim, step),greedyCoord[0])
-            if not hasTraversed(newState, bestCoord[1]):
-                # traverse dim alters newState correctly and continuously
-                (newState, newCoord) = traverseDim(newState, 
-                    fittestCell, dim, step)
-                newActive.append(newCoord)
-        ###################################################
-        # CURRENTLY MODIFIED FOR GREEDY HILL CLIMBING
-        ################################################### 
+            # may eventually be altered to remove this call, given
+            # redundancy of ACTIVE_LAYER and selection of all neighbors
+            # can currently be used for selectivity of greed
+            pseudoFitness = evaluateCells(directNeighbors, ACTIVE_LAYER)
+            greedyCoords   = getFittestPercent(pseudoFitness, 100)
+
+            for greedyCoord in greedyCoords:
+                vdiff = subtract(greedyCoord[0], fittestCell)
+                dim  = filter(lambda elem: elem != 0, [i if vdiff[i] != 0 else 0 for i in range(len(vdiff))])
+                # dirty fix for zero-th dimension check
+                if dim == []:
+                    dim = 0
+                else:
+                    dim = dim[0]
+                step = 1 if vdiff[dim] > 0 else -1 if vdiff[dim] < 0 else 0
+                bestCoord = ((dim, step),greedyCoord[0])
+                if not hasTraversed(newState, bestCoord[1]):
+                    # traverse dim alters newState correctly and continuously
+                    (newState, newCoord) = traverseDim(newState, 
+                        fittestCell, dim, step)
+                    newActive.append(newCoord)
+        else:
+            selectedCells  = map(lambda elem: elem[0], fittestPercent)
     else:
         selectedCells  = map(lambda elem: elem[0], fittestPercent)
 
 
-
-
-
-
-
-    for cell in selectedCells: # loop over most promising
+    for cell in selectedCells:
         neighbors      = getNeighborCells(cell)
         newState[cell] = 1 # mark current cell as visited + inactive
         # SLOW: consider replacement by portion of split list from selectedCells
         newActive.remove(cell)
         
-        ###############################
+        ###################################################
         # code for neighbor choice heuristic
-        ###############################
+        ###################################################
         # selectedNeighbors = neighbors # default
         
         # determine most promising neighbors of fittest cells via barycenter
         selectedNeighbors = []
         offset            = getCenterOffset(fittestPercent)
-        # threshold for barycenter and minimum active cells for heuristic
-        threshold = 0.003
-        minActive = 10
+    
         properDim = map(lambda elem: True if abs(elem) >= threshold else False, offset)
-
-
 
         signDim   = map(lambda elem: 1 if elem >= 0 else -1, offset)
         # if no clear advantageous direction, or lack of activity, simple floodfill
@@ -245,9 +256,9 @@ def propagate(currentState, activeCells, fitnessMap, optimum):
             if properDim[dim] and signDim[dim]*step >= 0:
                 selectedNeighbors.append(elem)
 
-        ###############################
+        ###################################################
         # code for basic propagation (independent of heuristc)
-        ###############################
+        ###################################################
 
         for auxCell in selectedNeighbors:
             # second element in tuple gives coordinates
@@ -312,7 +323,7 @@ def getCoordinateCenter(fitnessMap, isWeighted):
 def evaluateCells(activeCells, activeLayer):
     fitnessMap = []
     for elem in activeCells:
-        # populate parameters in physical measurement from activeCell coordinates
+        # populate parameters in physical measurement from activeCell coords
         parameters = [stack[i].min_depth + elem[i]*stack[i].discrete_depth for i in range(len(elem))]
         for i in range(len(parameters)):
             # find a more efficient way to populate
@@ -397,62 +408,110 @@ def prettyPrint(currentState, dim1, dim2):
 ###########################################################
 
 def main():
+    for selectivity in range(700,750,50):
+        # t1 = time.clock()
+        MAX_STEP     = 500 # hard cutoff for propagations
+        ACTIVE_LAYER = 2  # which layer in stack active (zero-index)
+        DIVISIONS    = 4  # active cells per dimension (cartesian product base)
+        THRESHOLD    = 3505
+        
+        # same size as searchSpace
+        # 0: unvisited, 1: visited + inactive
+        # 2: visited + active.
+        currentState = zeros([int((stack[i].max_depth
+            -stack[i].min_depth)/stack[i].discrete_depth)+1 
+                for i in range(layerNum)])
 
-    MAX_STEP     = 400 # hard cutoff for propagations
-    ACTIVE_LAYER = 2  # which layer in stack active (zero-index)
-    DIVISIONS    = 4  # active cells per dimension (cartesian product base)
-    
-    # same size as searchSpace
-    # 0: unvisited, 1: visited + inactive
-    # 2: visited + active.
-    currentState = zeros([int((stack[i].max_depth
-        -stack[i].min_depth)/stack[i].discrete_depth)+1 
-            for i in range(layerNum)])
+        # index of starting point (permits multuple seed locations)
+        # list of tuples: ALL cell coordinate are tuples
+        initialPosition = []
+        stateShape      = currentState.shape
+        dimIntervals    = [range(0,elem,elem/DIVISIONS-1) if elem > DIVISIONS else range(0,elem) for elem in stateShape]
+        
+        # print "\ninterval division of search space: \n" + str(dimIntervals) + "\n"
+        initialPosition     = array(meshgrid(*dimIntervals)).T.reshape(-1,len(stateShape))
+        initialPosition     = map(lambda elem: tuple(elem), initialPosition)
 
-    # index of starting point (permits multuple seed locations)
-    # list of tuples: ALL cell coordinate are tuples
-    initialPosition = []
-    stateShape      = currentState.shape
-    dimIntervals    = [range(0,elem,elem/DIVISIONS-1) if elem > DIVISIONS else range(0,elem) for elem in stateShape]
-    print "\ninterval division of search space: \n" + str(dimIntervals) + "\n"
-    initialPosition     = array(meshgrid(*dimIntervals)).T.reshape(-1,len(stateShape))
-    initialPosition     = map(lambda elem: tuple(elem), initialPosition)
+        # single cell initial position
+        # initialPosition = [(0,0,0,0)] # heuristic behavior
 
-    initialPosition = [(0,10,10,0)] # heuristic behavior
+        # list of coordinates for active cells
+        activeCells = copy.deepcopy(initialPosition)
+        # initialize currentState according to activeCells
+        for elem in activeCells:
+            currentState[elem] = 2
+        # store global optimum thusfar
+        optimum = [((0,0,0,0),0.0)]
 
-    # list of coordinates for active cells
-    activeCells = copy.deepcopy(initialPosition)
-    # initialize currentState according to activeCells
-    for elem in activeCells:
-        currentState[elem] = 2
-    # store global optimum thusfar
-    optimum = [((0,0,0,0),0.0)]
+        # main propagation loop
+        print "\nBest Performing Cell per Each Iteration:"
+        print "________________________________________\n"   
+        print "position in space\t\tfitness"
+        count = 0
+        while len(activeCells) != 0 and count < MAX_STEP and optimum[0][1] < THRESHOLD:
+            count = count + 1
+            fitnessMap = evaluateCells(activeCells, ACTIVE_LAYER)
+            (newState, newActive, newOptimum) = propagate(currentState, activeCells, 
+                fitnessMap, optimum, ACTIVE_LAYER, selectivity)
+            currentState = newState
+            activeCells  = newActive
+            optimum      = newOptimum
 
-    # main propagation loop
-    print "\nBest Performing Cell per Each Iteration:"
-    print "________________________________________\n"
-    print "position in space\t\tfitness"
-    count = 0
-    while len(activeCells) != 0 and count < MAX_STEP:
-        count = count + 1
-        fitnessMap = evaluateCells(activeCells, ACTIVE_LAYER)
-        (newState, newActive, newOptimum) = propagate(currentState, activeCells, fitnessMap, optimum)
-        currentState = newState
-        activeCells  = newActive
-        optimum      = newOptimum
-        print str(optimum[0][0]) + "\t\t\t" + "%.3f" % optimum[0][1]
-        prettyPrint(newState, 1, 2)
+            # if optimum[0][1] > 3450:
+            #     t2 = time.clock()
+            #     print "for selectivity: " + str(selectivity)
+            #     print "in time: " + str(t2 - t1)
+            #     print str(optimum[0][0]) + "\t\t\t" + "%.3f" % optimum[0][1] + " at count: " + str(count)
+            #     print "________________________________________"
+            #     print "{",
 
-    # prints statistics on search space size and percentage actually searched
-    searchCount = 0
-    for elem in currentState.flatten():
-        if elem == 2 or elem == 1:
-            searchCount = searchCount + 1
-    totalLen = len(currentState.flatten())
-    print "________________________________________"
-    print "\ntotal cells searched: " + str(searchCount)
-    print "total cells in space: " + str(totalLen)
-    print "traversal percentage: "  + "%.3f" % (searchCount*100.0/totalLen)
+
+            #     for i in range(len(newState)):
+            #         for j in range(len(newState[i])):
+            #             for k in range(len(newState[i][j])):
+            #                 for l in range(len(newState[i][j][k])):
+            #                     if newState[i][j][k][l] != 0:
+            #                         print "{" + str(i) + "," + str(j) + "," + str(k) + "},",
+
+            #     # for elem in newActive:
+            #     #     print "{" + ",".join(map(lambda elem: str(elem),elem[0:3])) + "},",
+            #     print "}"
+            #     print "________________________________________"
+            #     break
+            print str(optimum[0][0]) + "\t\t\t" + "%.3f" % optimum[0][1] + " at count: " + str(count)
+            # prettyPrint(newState, 1, 2)
+
+        # prints statistics on search space size and percentage actually searched
+        searchCount = 0
+        for elem in currentState.flatten():
+            if elem == 2 or elem == 1:
+                searchCount = searchCount + 1
+        totalLen = len(currentState.flatten())
+        print "\ntotal cells searched: " + str(searchCount)
+        print "total cells in space: " + str(totalLen)
+        print "traversal percentage: "  + "%.3f" % (searchCount*100.0/totalLen)
+        print "________________________________________"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     #######################################################
     # unit tests
@@ -470,44 +529,6 @@ def main():
     # print testState
     # print "\nstatus of cell (1,1,1,1) -- hasTraversed: " + str(hasTraversed(testState, (1,1,1,1)))
     # print "\nstatus of cell (1,1,1,0) -- hasTraversed: " + str(hasTraversed(testState, (1,1,1,0)))
-
-    # print "\n__________ test traverseDim\n"
-    # print "\nlist of active cells by coordinate\n"
-    # print testActive
-    # for elem in testActive:
-    #     testState[elem] = 2
-    # print "\ntestState given activated cells\n"
-    # print testState
-
-    # # should leave originals unaltered while returning new active and state
-    # (newState, activeCell) = traverseDim(testState, testActive[0], 0, 1)
-    # testActive = [activeCell]
-    # testState = newState
-    # print "\nnew state given traversal from (0,0,0,0) to (1,0,0,0)\n"
-    # print testState
-    # print "\nnew activeCell list given movement from (0,0,0,0) to (1,0,0,0)\n"
-    # print testActive
-
-    # (newState, activeCell) = traverseDim(testState, testActive[0], 1, 1)
-    # testActive = [activeCell]
-    # testState = newState
-    # print "\nnew state given traversal from (1,0,0,0) to (1,1,0,0)\n"
-    # print testState
-    # print "\nnew activeCell list given movement from (1,0,0,0) to (1,1,0,0)\n"
-    # print testActive
-
-    # print "\n__________ test evaluateCells\n"
-    # # calls with active cells and layer (CQD)
-    # fitnessMap = evaluateCells(testActive, 2)
-    # print "\nfitnessMap given active CQD layer and (1,1,0,0) active cell\n"
-    # print fitnessMap
-    
-    # fitnessMap = [((1, 1, 0, 0), 200),((0, 1, 1, 0), 100)]
-
-    # print "\ndifference between geometric- and bary-center\n"
-    # print getCenterOffset(fitnessMap)
-    # print "\neighbors of coodinate (0,1,0,0)\n"
-    # print getNeighborCells((0,1,0,0))
     
 if __name__ == "__main__":
     main()

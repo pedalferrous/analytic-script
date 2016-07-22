@@ -91,12 +91,19 @@ def main():
     # Average E^2 integral in active layer (CQD): 
     # [82.01202593364928, 245.38468092862215, 3504.612761494427, 0.9749937541718504]
 
+    # stack = [
+    #         film(50, 'au', 'Gold_1', True, False),
+    #         film(290, 2.4 + 0.106j, 'CQD', True, False),
+    #         film(50, 'au', 'Gold_2', True, True), # planar symmetric layer
+    #         film(100,3.42, 'Silicon', True, False)
+    #         ]
+
     stack = [
-            film(50, 'au', 'Gold_1', True, False),
-            film(290, 2.4 + 0.106j, 'CQD', True, False),
-            film(50, 'au', 'Gold_2', True, True), # planar symmetric layer
-            film(100,3.42, 'Silicon', True, False)
-            ]
+        film(50, 'au', 'Gold_1', True, False),
+        film(290, 2.4 + 0.106j, 'CQD', True, False),
+        film(50, 'au', 'Gold_2', True, True), # planar symmetric layer
+        film(100,3.42, 'Silicon', True, False)
+        ]
 
     # stack = [
     #         film(4000, 1.4, 'SiO2_1', True, True),
