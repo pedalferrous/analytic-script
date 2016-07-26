@@ -15,17 +15,17 @@
 ## PRIMARY USES & SUMMARY: 
 * Contents of this project may be used in tandem to
   optimize thin film configurations as well as plot
-  their internal characteristics, including explicit
+  internal characteristics. This includes explicit
   and average e-fields, transmission and reflection
   coefficients, and e-field integrals across structures
   or particular features.
-* File `thinFilmClean.py` contains all methods relating
-  to analytic thin film solver, using methods defined in
+* File `thinFilmClean.py` comprises all methods relating
+  to analytic thin film solver, using techniques defined in
   various photonics papers indicated in code. This file
   may be called explicitly to plot various collections of
-  `film`s defined in head of code (`stack`). This 'stack'
-  is easily adjustable, with measurements in nm, and
-  directions for input of refractive indices, allowing
+  `film`s defined in head of code (i.e. in the `stack`). 
+  This `stack` is easily adjustable, with measurements in nm, 
+  and directions for input of refractive indices, allowing
   constant real, constant complex, csv-format, and Drude
   Model.
 * File `autoOptimize.py` calls various methods in the
@@ -35,33 +35,35 @@
   parameters for minimum, maximum, and smallest  discrete
   step possible to fabricate for each layer. This `stack`
   is modified quietly by the code (specifically in method
-  `evaluateCells`, modified into `portStack` to be readable by 
+  `evaluateCells`, where it is modified to `portStack` and made readable by 
   `thinFilmClean.py` methods). Code
   uses heuristic to populate space defined as n-dimensional and
-  discrete, consisting of all possible combinations of layer thicknesses. 
-  This space, often very large, is seeded and pseudo-greedily
-  searched so that optimal or near optimal configuration
-  may be found, although direct calculation is performed for only a
-  fraction of the entire space. Details of this optimization, its
-  current parameters, and its advances use are defined below.
+  discrete, each lattice point a different combination of layer thicknesses. 
+  This space, often very large, is seeded and quasi-greedily
+  searched so that optimal or near optimal configurations
+  may be found, in spite of direct calculation is performed for only a
+  fraction of the entire space (in short, a metaheuristic). 
+  Details of this optimization, its
+  current parameters, and its recent advances use are defined below.
   `autoOptimize.py` does not use `thinFilmClean.py` graphic methods
-  currently, but optimal `stack`s may be either ported 
-  by hand, or called with relative ease.
-* file `paramVary.py` is deprecated.
-* file `thinFilm.py` is deprecated and will eventually be replaced by
+  currently, but optimal `stack`s may be ported 
+  by hand or called with relative ease by a curious user.
+* File `paramVary.py` is deprecated.
+* File `thinFilm.py` is deprecated and will eventually be superseded by
   `thinFilmClean.py`.
-* auxiliary files contain optical index information,
-  or notes on code performance and routes for improvement.
+* Auxiliary files contain optical index information,
+  or notes on code performance and routes for improvement. Study of their format
+  will allow for the inclusion of arbitrary material parameters. 
 
 #######################################
 ## THINFILMCLEAN METHODS:
 
 ### main:
-  * the following descriptors appear in order seen in method
-  * options to save, as well as plot various characteristics
-    of device, clearly named and labeled
-  * various alterable constants are defined, with their uses
-    and dimensions defined in code. these will not
+  * The following descriptors appear in line order.
+  * Options to save, as well as plot various characteristics
+    of device, clearly named and labeled.
+  * Various user-mutable constants are defined, with their uses
+    and dimensions specified in situ. These will not
     need to be altered often if one is testing differing
     configurations under same external conditions
       *  `wls` is simply a linspace of wavelengths (in nm)
@@ -71,13 +73,13 @@
          be aware these results are not directly commensurable with non
          blackbody results, as overall scale is arbitrary.
       *  `angles` is a non weighted list in **RADIANS**
-  * fundamental constants are defined
-  * main stack is defined, comprising layers, each a `film`
+  * Fundamental non-user-mutable constants are defined
+  * Main stack is defined, comprising layers, each a `film`
     data type defined early in code (a named tuple). A `stack`
     is simply a list of `film`s, and only one `stack` may currently
     be run at a time (although alterations to code would not
-    make the sequential run of `stack`s difficult. Film options are:
-      * `layer` : generic name of layer, do not worry about this.
+    make queuing, or the sequential run of `stack`s, difficult. Film options are:
+      * `layer` : generic name of layer; do not worry about this.
       * `depth` : depth in nm of said layer, integer or float.
       * `index` : index of refraction, either constant, name of external file
                   or Drude parameters defined earlier in code (currently only
@@ -88,55 +90,76 @@
       * `active`: determines whether this layer's individual e-field wil be 
                   integrated, and thus plotted or otherwise displayed. leave
                   boolean True if this is desired.
-  * rest of methods need not be altered, and result is deterministic
+  * Rest of methods need not be altered, and result is deterministic
     based on parameters supplied above. These methods simply call the
-    appropriate helper methods to do dirty work in traversing your
+    appropriate helper methods to do dirty work in traversing user's
     specified structure.
 
 ### evalField:
-  * given defined stack and spectral range, this method returns all information
-    associated with the e-field resultant in the device.
+  * Given defined stack and spectral range, this method returns all information
+    associated with the e-field resultant in device.
   * `INPUT`:
     * `stack`: defined above; a list of the `film` data type.
     * `wls`: defined above; a linspace of wavelengths in nm.
     * `angles`: defined above; a list of angles in **RADIANS**.
-    * `pol`: polarization; 0 for p-polarization; 1 for s-polarization.
-    * `n_i`: optical index of material preceding stack
-    * `n_f`: optical index of material following stack
+    * `pol`: polarization; `0` for p-polarization; `1` for s-polarization.
+    * `n_i`: optical index of material preceding stack.
+    * `n_f`: optical index of material following stack.
     * `indices`: for each wavelength in `wls`, and for each layer in `stack`,
       a two dimensional list giving (possibly complex, i.e. attenuation and 
       phase coefficient) optical index.
-    * `t_angles`: for each layer, wavelength, and angle from their respective
-      data structures, a three dimensional list of resultant trasnmitted 
+    * `t_angles`: indexed by layer, wavelength, and angle from their respective
+      data structures: a three dimensional list of resultant trasnmitted 
       angles following Snell's law via the `snell` method.
-    * `P`: propagation matrix; a two dimensional square matrix indicating phase
+    * `P`: propagation matrix: a two dimensional square matrix indicating phase
       and amplitude change of incident waves. Indexed in multi-dimensional
       array by layer, wavelength, angle, and polarization in that order.
     * `I`: interface matrix: a two dimensional square matrix indicating
       reflection and transmission between layers. Same indexing as `P`.
   * `RETURN`:
+    * Tuple comprising the values below.
     * `E_0`: calculated incident and reflected electric field, given as a two
       dimensional vector whose elements indicate magnitude of right and left 
       moving plane-waveforms. 
     * `E_f`: calculated transmitted electric field, using same protocol as
       above.
     * `E_i`: list of e-field present at forward edge of indexed layer, which
-      may then be propagated forward by methods like EsqPlot for display.
-  * this method as well as `evalTR` follow closely the matrix transfer method
+      may then be propagated forward by methods like `EsqPlot` for display.
+  * This method as well as `evalTR` follow closely the matrix transfer method
     defined in Pettersson et al. (JAP 1999). 
+
+### esqIntEval:
+  * `INPUT`:
+    * `stack`: defined above.
+    * `wls`: defined above.
+    * `angles`: defined above.
+    * `pols`: defined above.
+    * `indices`: defined above.
+    * `E_i`: defined above in `evalField` return.
+  * `RETURN`:
+    * Tuple comprising the values below.
+    * `ESqInt`: Numerical integral from interpolated function given by 
+      parameters contained in e-field definition. Still indexed by layer number,
+      wavelength, angle, and polarization in that order. 
+    * `ESqIntAvg`: Average of above data structure across all indices save
+      layer number. That is, the general performance of each layer.
+    * `PAbsd`: Power absorbed as defined by external technique referenced in 
+      situ. Indexed through the same means as `ESquInt`.
+    * `PAbsdAvg`: Average of above data structure in the same manner as
+      `ESqIntAvg`.
 
 #######################################
 ## AUTOOPTIMIZE METHODS:
 
 ### main:
-  * easily adjustable constants are defined
+  * Easily adjustable constants are defined
     * `MAX_STEP`: number of propagations desired (similar to iterations 
       of flood fill, save with accompanying heuristic that allows non linear
       scaling)
     * `ACTIVE_LAYER`: index of layer in stack, defined in autoOptimize.py, that
       one wishes to maximize the e-field integral over. Currently this is 
-      implemented for one active layer only, although this can be changed
-      with relative ease in accompanying methods (namely, evaluate Cells)
+      implemented for one active layer per run, although this can be changed
+      with relative ease in accompanying methods (namely, `evaluateCells`)
     * `DIVISIONS`: seeds space with (`DIVISIONS + 1`) active cells evenly spaced
       along each dimension, taking in essence the cartesian product
       of these one dimensional intervals, and thus seeding a lattice. Higher
@@ -144,19 +167,21 @@
       possible optima. The best heuristic is to have a displacement between 
       far apart seeds be not more than an order of magnitude larger than 
       `MAX_STEP`.
-  * search space is then instantiated to proper size according to stack, and
+    * `THRESHOLD`: Cutoff value at which iteration will halt in a manner 
+      analogous to `MAX_STEP`, or the space being exhausted of unvisited cells.
+  * Search space is then instantiated to proper size according to stack, and
     values specified above.
-  * code propagates either `MAX_STEP` times, or until there are no active cells
+  * Code propagates either `MAX_STEP` times, or until there are no active cells
     (if you feel you are running low on active cells too soon, see 
-    selectedNeighbors subsection of propagate method). Output is list of the 
+    `selectedNeighbors` subsection of propagate method). Output is list of the 
     best cell per propagation, listing coordinates first and then fitness of
     said cell. Final output give numerical information on traversal of space.
 
 ### propagate:
-  * this is the workhorse method of the heuristic search algorithm. All
-    methods called via this method (save `evaluateCells`) will be described
-    in short for now, and given full entries later. They will not in standard
-    cases need alteration, serving primarily as helpers.
+  * Welcome (no please, stay)! This is the workhorse method of the heuristic 
+    search algorithm. All methods called via this method (save `evaluateCells`) 
+    will be described in short for now, and given full entries later. They will 
+    not in standard cases need alteration, serving primarily as helpers.
   * `INPUT`: 
     * `currentState`: numpy array containing all information on unvisited (0)
       cells, visited but inactive (1) cells, and visited active (2) cells.
@@ -170,8 +195,8 @@
       cell. All heuristic decisions are made off this data structure.
     * `optimum`     : single element of fitnessMap, largest float parameter.
   * `RETURN`:
-    * tuple comprising `newState`, `newActive`, and `newOptimum`.
-    * these are modified **COPIES** of original input, allowing for sequential
+    * Tuple comprising `newState`, `newActive`, and `newOptimum`.
+    * These are modified **COPIES** of original input, allowing for sequential
       feeding of method's output into itself. See INPUT for data types.
   * `propagate` makes copies of its inputs, and should **NEVER** modify them. 
     when modifying propagate, two main section should be accessed first, forming
@@ -208,7 +233,7 @@
         modified as seen fit, but as a rule of thumb, the number of cells
         selected per propagation should not dip below 10 or so, lest bottleneck
         effects occur. 
-      * between these two selections of cells to propagate from, and neighbors
+      * Between these two selections of cells to propagate from, and neighbors
         of said cells to pick, an auxiliary process has been inserted, with the
         intent of solving 'gapping' of the space when the barycenter heuristic 
         is too diffuse. When activated, the insert will, when the size of 
@@ -239,7 +264,7 @@
         for modifications centers in better maintenance of active cells.
 
 ### evaluateCells:
-  * this is the workhorse method for porting into `thinFilmClean.py` in order
+  * This is the workhorse method for porting into `thinFilmClean.py` in order
     to fill `fitnessMap`. all extra-file communication should be contained in
     this method (promise me).
   * `INPUT`:
@@ -259,7 +284,7 @@
     the tuples then fed into fitnessMap.
 
 ### hasTravsered:
-  * checks if input cell has been traversed or is invalid choice.
+  * Checks if input cell has been traversed or is invalid choice.
   * `INPUT`:
     * `currentState`: defined above.
     * `coords`: a coordinate tuple of dimension equal to the length of `stack`.
@@ -268,7 +293,7 @@
       `False` otherwise (namely cell has value `0`).
 
 ### travserseDim:
-  * propagates from cell in specified direction a specified distance, returns
+  * Propagates from cell in specified direction a specified distance, returns
     new state and new active cell.
   * `INPUT`:
     * `currentState`: defined above.
@@ -280,24 +305,24 @@
       checks if this is in conjunction with `dim` is a valid position, 
       and will throw error if not.
   * `RETURN`:
-    * tuple consisting of those values found below.
+    * Tuple consisting of those values found below.
     * `newState`: state with `activeCell` position changed to `1` and new site
       of activity changed to `2`.
     * `newCoord`: tuple coordinate of new active cell from traversal.
 
 ### getNeighborCells:
-  * returns **ALL** coordinates of neighboring cells adjacent by a face in 
+  * Returns **ALL** coordinates of neighboring cells adjacent by a face in 
     n-dimensional search space. This includes **INVALID** coordinates not in 
     space.
   * `INPUT`:
     * `coords`: coordinates of cell around which neighbors are pulled.
   * `RETURN`:
-    * list of tuple coordinates of possibly invalid neighbors. This is a lazy
+    * List of tuple coordinates of possibly invalid neighbors. This is a lazy
     neighbor search because **EVERYTHING** must be run through `hasTraversed`
     in `propagate`.
 
 ### getCoordinateCenter:
-  * returns weighted or unweighted centroid of a list of cell positions and 
+  * Returns weighted or unweighted centroid of a list of cell positions and 
     fitnesses.
   * `INPUT`:
     * `fitnessMap`: defined above; a list of tuples of tuple coordinates and 
@@ -305,34 +330,34 @@
     * `isWeighted`: boolean `True` is barycenter is desired, `False` if centroid
     is desired.
   * `RETURN`:
-    * tuple coordinate of weighted or unweighted center determined by 
+    * Tuple coordinate of weighted or unweighted center determined by 
     `isWeighted`.
 
 ### getCenterOffset:
-  * small helper method to return difference between centroid and barycenter.
+  * Small helper method to return difference between centroid and barycenter.
   That is, the coordinate `getCoordinateCenter(fitnessMap, True)` less 
   `getCoordinateCenter(fitnessMap, True)`. For ease in heuristic. 
   * `INPUT`:
     * `fitnessMap`: defined above; a list of tuples of tuple coordinates and 
     fitnesses.
   * `RETURN`:
-    * tuple representing vector difference between centroid and barycenter: 
+    * Tuple representing vector difference between centroid and barycenter: 
       specifically, barycenter less centroid.
 
 ### getFittestPercent:
-  * given `fitnessMap` and a percentage, return a revised `fitnessMap`
+  * Given `fitnessMap` and a percentage, return a revised `fitnessMap`
     containing only the top percentage of its original elements.
   * `INPUT`:
     * `fitnessMap`: defined above.
     * `percent`: a numerical value between `1` and `100` (complain all you want
       about non-unity percentage base).
   * `RETURN`:
-    * list of tuples of tuple coordinates and fitness values. This must 
+    * List of tuples of tuple coordinates and fitness values. This must 
       **ALWAYS** be unpacked before direct insertion into `selectedCells` in 
       `propagate`.
 
 ### prettyPrint:
-  * for quick debugging of the heuristic, this allows the display of the
+  * For quick debugging of the heuristic, this allows the display of the
     `dim1`-`dim2` plane with `0 -> " ", 1 -> ".", 2 -> "#"`. When space is taken
     to be two dimensional (e.g. all but two layers of stack are given set
     measurement), this allows visualization of whole space and activity of 

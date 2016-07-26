@@ -98,13 +98,6 @@ def main():
     #         film(100,3.42, 'Silicon', True, False)
     #         ]
 
-    stack = [
-        film(50, 'au', 'Gold_1', True, False),
-        film(290, 2.4 + 0.106j, 'CQD', True, False),
-        film(50, 'au', 'Gold_2', True, True), # planar symmetric layer
-        film(100,3.42, 'Silicon', True, False)
-        ]
-
     # stack = [
     #         film(4000, 1.4, 'SiO2_1', True, True),
     #         film(4000, 1.4, 'SiO2_2', True, True),

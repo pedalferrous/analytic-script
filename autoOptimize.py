@@ -43,9 +43,9 @@ film = namedtuple('layer',['depth','index','name',
 portFilm = namedtuple('layer',['depth','index','name','active'])
 
 stack = [
-        film(0, 1.399, 'SiO2', 5, 305, 5.0, False),
-        film(0, itoDrudeParams, 'ITO', 5, 400, 5.0, False),
-        film(0, 2.4 + 0.106j, 'CQD', 360, 860, 5.0, False),
+        film(0, 1.399, 'SiO2', 5, 250, 5.0, False),
+        film(0, itoDrudeParams, 'ITO', 5, 300, 5.0, False),
+        film(0, 2.4 + 0.106j, 'CQD', 460, 860, 5.0, False),
         film(0, 'au', 'Gold', 200, 200, 10.0, False)
         ]
 # number of layers in stack
@@ -58,7 +58,7 @@ stack = [
 #         ]
 
 
-layerNum    = len(stack)
+layerNum = len(stack)
 
 ###########################################################
 # methods for heuristic searching
@@ -139,7 +139,7 @@ def propagate(currentState, activeCells, fitnessMap, optimum, ACTIVE_LAYER, sele
     minActive = 10
     
     # population selection threshold for cuttoff of greediness
-    greedPopulation = 30
+    greedPopulation = 50
 
     # selectivity for percentage of population propagated per cycle
     # currently an argument of propagate for ease of testing
@@ -163,8 +163,8 @@ def propagate(currentState, activeCells, fitnessMap, optimum, ACTIVE_LAYER, sele
     percentage     = getPercentage(population, selectivity)
     fittestPercent = getFittestPercent(fitnessMap, percentage)
 
-    print "cells selected  : " + str(len(fittestPercent))
-    print "greed population: " + str(greedPopulation)
+    # print "cells selected  : " + str(len(fittestPercent))
+    # print "greed population: " + str(greedPopulation)
 
     ###################################################
     # Code for direct hill climbing mode
@@ -408,12 +408,13 @@ def prettyPrint(currentState, dim1, dim2):
 ###########################################################
 
 def main():
-    for selectivity in range(700,750,50):
-        # t1 = time.clock()
+    for selectivity in range(750,800,50):
+        print "selectivity: " + str(selectivity)
+
         MAX_STEP     = 500 # hard cutoff for propagations
         ACTIVE_LAYER = 2  # which layer in stack active (zero-index)
         DIVISIONS    = 4  # active cells per dimension (cartesian product base)
-        THRESHOLD    = 3505
+        THRESHOLD    = 3506
         
         # same size as searchSpace
         # 0: unvisited, 1: visited + inactive
@@ -428,7 +429,7 @@ def main():
         stateShape      = currentState.shape
         dimIntervals    = [range(0,elem,elem/DIVISIONS-1) if elem > DIVISIONS else range(0,elem) for elem in stateShape]
         
-        # print "\ninterval division of search space: \n" + str(dimIntervals) + "\n"
+        print "\ninterval division of search space: \n" + str(dimIntervals) + "\n"
         initialPosition     = array(meshgrid(*dimIntervals)).T.reshape(-1,len(stateShape))
         initialPosition     = map(lambda elem: tuple(elem), initialPosition)
 
@@ -457,10 +458,9 @@ def main():
             activeCells  = newActive
             optimum      = newOptimum
 
-            # if optimum[0][1] > 3450:
-            #     t2 = time.clock()
+            # to be used for cell dump
+            # if optimum[0][1] > 3505:
             #     print "for selectivity: " + str(selectivity)
-            #     print "in time: " + str(t2 - t1)
             #     print str(optimum[0][0]) + "\t\t\t" + "%.3f" % optimum[0][1] + " at count: " + str(count)
             #     print "________________________________________"
             #     print "{",
@@ -478,6 +478,7 @@ def main():
             #     print "}"
             #     print "________________________________________"
             #     break
+
             print str(optimum[0][0]) + "\t\t\t" + "%.3f" % optimum[0][1] + " at count: " + str(count)
             # prettyPrint(newState, 1, 2)
 
@@ -491,26 +492,6 @@ def main():
         print "total cells in space: " + str(totalLen)
         print "traversal percentage: "  + "%.3f" % (searchCount*100.0/totalLen)
         print "________________________________________"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     #######################################################
