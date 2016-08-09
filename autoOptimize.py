@@ -42,20 +42,25 @@ film = namedtuple('layer',['depth','index','name',
 # modified film to be ported into thinFilmClean.py
 portFilm = namedtuple('layer',['depth','index','name','active'])
 
-stack = [
-        film(0, 1.399, 'SiO2', 5, 250, 5.0, False),
-        film(0, itoDrudeParams, 'ITO', 5, 300, 5.0, False),
-        film(0, 2.4 + 0.106j, 'CQD', 460, 860, 5.0, False),
-        film(0, 'au', 'Gold', 200, 200, 10.0, False)
-        ]
+# stack = [
+#         film(0, 1.399, 'SiO2', 500, 2500, 10.0, False),
+#         film(0, itoDrudeParams, 'ITO', 50, 50, 5.0, False),
+#         film(0, 2.4 + 0.106j, 'CQD', 300, 800, 5.0, False),
+#         film(0, 'au', 'Gold', 100, 100, 10.0, False)
+#         ]
 # number of layers in stack
 
-# layer arrangement from Bouchon 2012
 # stack = [
-#         film(0, 'au', 'Gold_1', 50, 50, 5.0, False),
-#         film(0, 'ZnS', 'Zinc Sulfide', 800, 1800, 1.0, False),
-#         film(0, 'au', 'Gold_2', 200, 200, 10.0, False)
+#         film(0, itoDrudeParams, 'ITO', 50, 50, 5.0, False),
+#         film(0, 2.4 + 0.106j, 'CQD', 300, 900, 5.0, False),
+#         film(0, 'au', 'Gold', 100, 100, 10.0, False)
 #         ]
+
+stack = [
+       film(6.0, 'NiCr', 'NiCr approximation',6.0, 6.0, 5.0, False),
+       film(300.0, 2.4 + 0.106j, 'CQD', 200.0, 2000.0, 5.0, True),
+       film(100.0, 'au', 'Gold', 100.0, 100.0, 5.0, False)
+       ]
 
 
 layerNum = len(stack)
@@ -408,12 +413,13 @@ def prettyPrint(currentState, dim1, dim2):
 ###########################################################
 
 def main():
-    for selectivity in range(750,800,50):
+    # cycle through selectivity (for testing purposes only!)
+    for selectivity in range(850,900,50):
         print "selectivity: " + str(selectivity)
 
         MAX_STEP     = 500 # hard cutoff for propagations
-        ACTIVE_LAYER = 2  # which layer in stack active (zero-index)
-        DIVISIONS    = 4  # active cells per dimension (cartesian product base)
+        ACTIVE_LAYER = 1 # which layer in stack active (zero-index)
+        DIVISIONS    = 5  # active cells per dimension (cartesian product base)
         THRESHOLD    = 3506
         
         # same size as searchSpace
@@ -434,7 +440,7 @@ def main():
         initialPosition     = map(lambda elem: tuple(elem), initialPosition)
 
         # single cell initial position
-        # initialPosition = [(0,0,0,0)] # heuristic behavior
+        initialPosition = [(0,0,0)] # heuristic behavior
 
         # list of coordinates for active cells
         activeCells = copy.deepcopy(initialPosition)
@@ -442,13 +448,17 @@ def main():
         for elem in activeCells:
             currentState[elem] = 2
         # store global optimum thusfar
-        optimum = [((0,0,0,0),0.0)]
+        optimum = [((0,0,0),0.0)]
 
         # main propagation loop
         print "\nBest Performing Cell per Each Iteration:"
         print "________________________________________\n"   
         print "position in space\t\tfitness"
+        
         count = 0
+
+        print "{"
+
         while len(activeCells) != 0 and count < MAX_STEP and optimum[0][1] < THRESHOLD:
             count = count + 1
             fitnessMap = evaluateCells(activeCells, ACTIVE_LAYER)
@@ -479,8 +489,10 @@ def main():
             #     print "________________________________________"
             #     break
 
-            print str(optimum[0][0]) + "\t\t\t" + "%.3f" % optimum[0][1] + " at count: " + str(count)
-            # prettyPrint(newState, 1, 2)
+            # print str(optimum[0][0]) + "\t\t\t" + "%.3f" % optimum[0][1] + " at count: " + str(count)
+            print "{" + str(fitnessMap[0][0][1]) + "," + str(fitnessMap[0][1]) + "},"
+
+        print "}"
 
         # prints statistics on search space size and percentage actually searched
         searchCount = 0

@@ -44,10 +44,10 @@ def main():
 
     #options to plot T/R as function of angle or incident wavelength
     plotTRangle = False
-    plotTRspectrum = False
+    plotTRspectrum = True
 
     #option to evaluate E^2 integral in active layer and plot spectrum
-    evalESQint = True
+    evalESQint = False
     #option to plot E^2 throughout structure
     plotESQ = False
 
@@ -56,7 +56,7 @@ def main():
     # measurements in nm
     # note that use of linespace is required currently for spectrum plots
     # this can be circumvented.
-    wls = linspace(1000, 12000, 1000)
+    wls = linspace(1400, 12000, 1000)
     # wls = linspace(4000, 4000, 1)
     # currently unnacepting of angle variation
     # angle represents CCW rotation from direction of propagation
@@ -65,7 +65,7 @@ def main():
     pols = [0,1]
     # incident and final indices (currently free space)
     # n_i = 3.43 given incidence through silicon
-    n_i = 3.43
+    n_i = 3.43 # indicative of CaF2 in the average 
     n_f = 1.0
 
     """ENTER STACK AND MATERIAL PROPERTIES HERE"""
@@ -88,13 +88,6 @@ def main():
     #         film(200, 'au', 'Gold', True)
     #         ]
 
-    # three layer stack from Bouchon
-    # stack = [
-    #     film(50, 'au', 'Gold_1', True),
-    #     film(1609, 'ZnS', 'Zinc Sulfide', True),
-    #     film(200, 'au', 'Gold_2',  True)
-    #     ]
-
     # computer optimized stack (courtesy of autoOptimize)
     # stack = [
     #         film(95, 1.399, 'SiO2', True),
@@ -116,10 +109,10 @@ def main():
     # [4477.880418884087, 122.29409960678106, 2790.1956874447324, 1.6006346413216146]
 
     # model of the old device using a gold back contact
-    #stack = [
-    #        film(6.0, 'NiCr-avg', 'NiCr approximation', False),
+    # stack = [
+    #        film(6.0, 'NiCr', 'NiCr approximation', False),
     #        film(300.0, 2.4 + 0.106j, 'CQD', True),
-    #        film(15.0, 'au', 'Gold', False)
+    #        film(100.0, 'au', 'Gold', False)
     #        ]
 
     # input from experimental data
@@ -131,9 +124,9 @@ def main():
     #         ]
 
     stack = [
-        film(745, 1.399, 'SiO2', True),
-        film(10, itoDrudeParams, 'ITO', False),
-        film(410, 2.4 + 0.106j, 'CQD', True),
+        film(1000, 1.399, 'SiO2', False),
+        film(20, 'Ti', 'Ti', False),
+        film(350, 2.4 + 0.106j, 'CQD', True),
         film(50, 'au', 'Gold', False)
         ]
 
@@ -593,7 +586,7 @@ def TRSpectrumPlot(T,R,wls,angles,save,saveFileName,tPlot=True,
     RAnglPolAvg = [0.5*(RsAnglAvg[j]+RpAnglAvg[j])
         for j in range(len(wls))]
     # temporary placement for calculation of absorbance
-    TAnglPolAvg = [-1.0*math.log(0.5*(TsAnglAvg[j]+TpAnglAvg[j]+RAnglPolAvg[j]),10)
+    TAnglPolAvg = [2.0-math.log(100*0.5*(TsAnglAvg[j]+TpAnglAvg[j]),10)
         for j in range(len(wls))]
     k_0 = 1.0e9/wls #conversion included from nm -> m
 
@@ -602,14 +595,14 @@ def TRSpectrumPlot(T,R,wls,angles,save,saveFileName,tPlot=True,
     # print ",".join(map(lambda elem: str(elem),TAnglPolAvg))
 
     # ax = plt.axes()
-    # # if tPlot:
-    #     # ax.plot(wls, TsAnglAvg, label='T_s')
-    #     # ax.plot(wls, TpAnglAvg, label='T_p')
-    #     # ax.plot(wls, TAnglPolAvg, label='T_avg')
-    # # if rPlot:
-    #     # ax.plot(wls, RsAnglAvg, label='R_s')
-    #     # ax.plot(wls, RpAnglAvg, label='R_p')
-    #     # ax.plot(wls, RAnglPolAvg, label='R_avg')
+    # if tPlot:
+    #     ax.plot(wls, TsAnglAvg, label='T_s')
+    #     ax.plot(wls, TpAnglAvg, label='T_p')
+    #     ax.plot(wls, TAnglPolAvg, label='T_avg')
+    # if rPlot:
+    #     ax.plot(wls, RsAnglAvg, label='R_s')
+    #     ax.plot(wls, RpAnglAvg, label='R_p')
+    #     ax.plot(wls, RAnglPolAvg, label='R_avg')
     # ax.legend()
     # ax.set_xlabel('Wavelength (nm)', fontsize=18)
     # plt.xticks(fontsize=15)
@@ -623,13 +616,14 @@ def TRSpectrumPlot(T,R,wls,angles,save,saveFileName,tPlot=True,
         # ax.plot(0.01*k_0, TsAnglAvg, label='T_s')
         # ax.plot(0.01*k_0, TpAnglAvg, label='T_p')
         ax.plot(0.01*k_0, TAnglPolAvg, label='T_avg')
+
     # if rPlot:
         # ax.plot(0.01*k_0, RsAnglAvg, label='R_s')
         # ax.plot(0.01*k_0, RpAnglAvg, label='R_p')
         # ax.plot(0.01*k_0, RAnglPolAvg, label='R_avg')
     ax.legend(loc='upper left')
     ax.set_xlabel('k (cm^-1)', fontsize=18)
-    ax.set_ylim([0.0,4.0])
+    ax.set_ylim([2,5])
     plt.xticks(fontsize=15)
     plt.yticks(fontsize=15)
     if save:
@@ -656,6 +650,8 @@ def ESqIntSpectrumPlot(ESqInt, PAbsd, stack, wls, angles, pols, indices, save, s
                 for j in range(len(wls))]
             ax.plot(wnums, ESqIntWls, label='{0} layer $\int E^2$'.format(stack[i].name))
             ax.plot(wnums, PAbsdWls, label='{0} layer power absorbed'.format(stack[i].name))
+
+            plt.ylim([0,4000])
 
     ax.legend()
     ax.set_xlabel('Wavenumber (cm$^-1$)', fontsize=18)
