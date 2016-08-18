@@ -44,10 +44,10 @@ def main():
 
     #options to plot T/R as function of angle or incident wavelength
     plotTRangle = False
-    plotTRspectrum = True
+    plotTRspectrum = False
 
     #option to evaluate E^2 integral in active layer and plot spectrum
-    evalESQint = False
+    evalESQint = True
     #option to plot E^2 throughout structure
     plotESQ = False
 
@@ -56,7 +56,7 @@ def main():
     # measurements in nm
     # note that use of linespace is required currently for spectrum plots
     # this can be circumvented.
-    wls = linspace(1400, 12000, 1000)
+    wls = linspace(1000, 8000, 1000)
     # wls = linspace(4000, 4000, 1)
     # currently unnacepting of angle variation
     # angle represents CCW rotation from direction of propagation
@@ -80,14 +80,6 @@ def main():
 
     """ENTER MAIN STACK HERE"""
 
-    # stack optimized for minimal T + R at 4000 nm
-    # stack = [
-    #         film(235, 1.399, 'SiO2', True),
-    #         film(100, itoDrudeParams, 'ITO', True),
-    #         film(610, 2.4 + 0.106j, 'CQD', True),
-    #         film(200, 'au', 'Gold', True)
-    #         ]
-
     # computer optimized stack (courtesy of autoOptimize)
     # stack = [
     #         film(95, 1.399, 'SiO2', True),
@@ -106,29 +98,22 @@ def main():
     #         film(50, 'au', 'Gold', False)
     #         ]
     # Average E^2 integral in active layer (CQD): 
-    # [4477.880418884087, 122.29409960678106, 2790.1956874447324, 1.6006346413216146]
 
     # model of the old device using a gold back contact
-    # stack = [
-    #        film(6.0, 'NiCr', 'NiCr approximation', False),
-    #        film(300.0, 2.4 + 0.106j, 'CQD', True),
-    #        film(100.0, 'au', 'Gold', False)
-    #        ]
+    stack = [
+           film(6.0, 'NiCr', 'NiCr approximation', False),
+           film(500.0, 2.4 + 0.106j, 'CQD', True),
+           # film(10000.0, 3.43 + 0.1j, 'Gold_0', True),
+           film(150.0, 'au', 'Gold', False)
+           ]
 
     # input from experimental data
     # stack = [
-    #         film(840, 1.399, 'SiO2', False),
-    #         film(50, itoDrudeParams, 'ITO', False),
-    #         film(525, 2.4 + 0.106j, 'CQD', True),
-    #         film(50, 'au', 'Gold', False)
+    #         film(200, 1.399, 'SiO2', False),
+    #         film(400, itoDrudeParams, 'ITO', False),
+    #         film(700, 2.4 + 0.106j, 'CQD', True),
+    #         film(150, 'au', 'Gold', False)
     #         ]
-
-    stack = [
-        film(1000, 1.399, 'SiO2', False),
-        film(20, 'Ti', 'Ti', False),
-        film(350, 2.4 + 0.106j, 'CQD', True),
-        film(50, 'au', 'Gold', False)
-        ]
 
     ###########################################################
     # Main processes and evaluation
@@ -206,8 +191,9 @@ def main():
         print 'EQE/IQE = {0}'.format((PAbsdActive/PAbsdTot)*(1-TAvg-RAvg))
 
         ESqIntSpectrumPlot(ESqInt, PAbsd, stack, wls, angles, pols, indices, save, saveFileName)
+        normPwrPlot(PAbsd, stack, wls, angles, pols, n_i, n_f, indices, save, saveFileName)
 
-    if plotESQ:  
+    if plotESQ:
         ESqPlot(E_i, stack, wls, angles, pols, indices, save, saveFileName)
 
 """Look up the index of refraction for a given wavelength reference file.
@@ -586,7 +572,7 @@ def TRSpectrumPlot(T,R,wls,angles,save,saveFileName,tPlot=True,
     RAnglPolAvg = [0.5*(RsAnglAvg[j]+RpAnglAvg[j])
         for j in range(len(wls))]
     # temporary placement for calculation of absorbance
-    TAnglPolAvg = [2.0-math.log(100*0.5*(TsAnglAvg[j]+TpAnglAvg[j]),10)
+    TAnglPolAvg = [0.5*(TsAnglAvg[j]+TpAnglAvg[j])
         for j in range(len(wls))]
     k_0 = 1.0e9/wls #conversion included from nm -> m
 
@@ -612,18 +598,18 @@ def TRSpectrumPlot(T,R,wls,angles,save,saveFileName,tPlot=True,
     # plt.show()
 
     ax = plt.axes()
-    if tPlot:
+    # if tPlot:
         # ax.plot(0.01*k_0, TsAnglAvg, label='T_s')
         # ax.plot(0.01*k_0, TpAnglAvg, label='T_p')
-        ax.plot(0.01*k_0, TAnglPolAvg, label='T_avg')
+        # ax.plot(0.01*k_0, TAnglPolAvg, label='T_avg')
 
-    # if rPlot:
+    if rPlot:
         # ax.plot(0.01*k_0, RsAnglAvg, label='R_s')
         # ax.plot(0.01*k_0, RpAnglAvg, label='R_p')
-        # ax.plot(0.01*k_0, RAnglPolAvg, label='R_avg')
+        ax.plot(0.01*k_0, RAnglPolAvg, label='R_avg')
     ax.legend(loc='upper left')
     ax.set_xlabel('k (cm^-1)', fontsize=18)
-    ax.set_ylim([2,5])
+    # ax.set_ylim([2,5])
     plt.xticks(fontsize=15)
     plt.yticks(fontsize=15)
     if save:
@@ -637,7 +623,6 @@ def ESqIntSpectrumPlot(ESqInt, PAbsd, stack, wls, angles, pols, indices, save, s
     ax = plt.axes()
 
     wnums = (1.0e7/wls) #wavenumbers in cm^-1 to be used in plotting
-    # wnums = map(lambda x: 1.0e7/x, wls) # with no linspace property
     for i in range(len(stack)):
         if stack[i].active:
             ESqIntWls = [sum(ESqInt[i][j][k][l] 
@@ -654,6 +639,7 @@ def ESqIntSpectrumPlot(ESqInt, PAbsd, stack, wls, angles, pols, indices, save, s
             plt.ylim([0,4000])
 
     ax.legend()
+    ax.set_xlabel('Wavelength (nm)', fontsize=18)
     ax.set_xlabel('Wavenumber (cm$^-1$)', fontsize=18)
     ax.set_ylabel('(arb. units)', fontsize=18)
     plt.xticks(fontsize=15)
@@ -705,6 +691,52 @@ def ESqPlot(E_i, stack, wls, angles, pol, indices, save, saveFileName, pointsPer
     ax.grid(True)
     plt.show()
 
+def normPwrPlot(PAbsd, stack, wls, angles, pols, n_i, n_f, indices, save, saveFileName):
+    # highly attenuating configuration for normalization factor
+    # note that initial film layer should match n_i
+    # au may be altered to pure reflector if sufficient accuracy not
+    # achieved. All references are to tempStack until noted.
+    tempStack = [
+           film(10000.0, 3.43 + 0.1j, 'abs', True),
+           film(150.0, 'au', 'Gold', False)
+           ]
+
+    indices = [[indexLookup(layer.index, wl) for wl in wls] for layer in tempStack]
+    t_angles = snell(indices, angles, n_i, n_f)
+    (I,P) = genMatrices(tempStack, wls, angles, n_i, n_f, indices, t_angles)
+
+    (E_0, E_f, E_i) = evalField(tempStack, wls, angles, pols,
+    n_i, n_f, indices, t_angles, P, I)
+
+    (ESqInt,ESqIntAvg, tempPAbsd, PAbsdAvg) = ESqIntEval(tempStack,wls,angles,pols,indices,E_i)
+
+    normFactorTable = [sum(tempPAbsd[0][j][k][l] # arbitrary normalization placeholder
+                 for k in range(len(angles))
+                 for l in range(len(pols)))/(len(angles)*len(pols))
+                 for j in range(len(wls))]
+
+    # stack should not be used, without reference to tempStack
+    ax = plt.axes()
+    wnums = (1.0e7/wls) #wavenumbers in cm^-1 to be used in plotting
+
+    for i in range(len(stack)):
+        if stack[i].active:
+            PAbsdWls = [sum(PAbsd[i][j][k][l]/normFactorTable[j]
+                for k in range(len(angles))
+                for l in range(len(pols)))/(len(angles)*len(pols))
+                for j in range(len(wls))]
+            ax.plot(wnums, PAbsdWls, label='{0} layer power absorbed'.format(stack[i].name))
+
+            plt.ylim([0,1])
+
+    ax.legend()
+    ax.set_xlabel('Wavenumber (cm$^-1$)', fontsize=18)
+    ax.set_ylabel('(normalized to source)', fontsize=18)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    if save:
+        plt.savefig('results/{0}/{0}-ESqIntSpectrum.pdf'.format(saveFileName))
+    plt.show()
 
 if __name__ == "__main__":
     main()

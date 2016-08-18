@@ -43,10 +43,10 @@ film = namedtuple('layer',['depth','index','name',
 portFilm = namedtuple('layer',['depth','index','name','active'])
 
 # stack = [
-#         film(0, 1.399, 'SiO2', 500, 2500, 10.0, False),
-#         film(0, itoDrudeParams, 'ITO', 50, 50, 5.0, False),
-#         film(0, 2.4 + 0.106j, 'CQD', 300, 800, 5.0, False),
-#         film(0, 'au', 'Gold', 100, 100, 10.0, False)
+#         film(0, 1.399, 'SiO2', 200, 200, 10.0, False),
+#         film(0, itoDrudeParams, 'ITO', 200, 200, 5.0, False),
+#         film(0, 2.4 + 0.106j, 'CQD', 100, 4500, 5.0, False),
+#         film(0, 'au', 'Gold', 150, 150, 10.0, False)
 #         ]
 # number of layers in stack
 
@@ -57,9 +57,9 @@ portFilm = namedtuple('layer',['depth','index','name','active'])
 #         ]
 
 stack = [
-       film(6.0, 'NiCr', 'NiCr approximation',6.0, 6.0, 5.0, False),
-       film(300.0, 2.4 + 0.106j, 'CQD', 200.0, 2000.0, 5.0, True),
-       film(100.0, 'au', 'Gold', 100.0, 100.0, 5.0, False)
+       film(6.0, 'NiCr', 'NiCr approximation',0.0, 0.0, 5.0, False),
+       film(300.0, 2.4 + 0.106j, 'CQD', 100.0, 9000.0, 10.0, True),
+       film(100.0, 'au', 'Gold', 150.0, 150.0, 5.0, False)
        ]
 
 
@@ -175,60 +175,60 @@ def propagate(currentState, activeCells, fitnessMap, optimum, ACTIVE_LAYER, sele
     # Code for direct hill climbing mode
     # percentage required to activate defined above
     ###################################################
-    # selectedCells  = map(lambda elem: elem[0], fittestPercent) # default
+    selectedCells  = map(lambda elem: elem[0], fittestPercent) # default
 
-    # determine if few enough cells for greed
-    if len(fittestPercent) < greedPopulation:
-        # if only one cell selected, bypass below and simply select it
-        if len(fittestPercent) > 1:
-            # pass tail of fittest cells to following standard heuristic
-            selectedCells  = map(lambda elem: elem[0], fittestPercent[1:]) 
-            bestGroup   = [fittestPercent[0]]
-            fittestCells = map(lambda elem: elem[0], bestGroup)
+    # # determine if few enough cells for greed
+    # if len(fittestPercent) < greedPopulation:
+    #     # if only one cell selected, bypass below and simply select it
+    #     if len(fittestPercent) > 1:
+    #         # pass tail of fittest cells to following standard heuristic
+    #         selectedCells  = map(lambda elem: elem[0], fittestPercent[1:]) 
+    #         bestGroup   = [fittestPercent[0]]
+    #         fittestCells = map(lambda elem: elem[0], bestGroup)
            
-            directNeighbors = []
+    #         directNeighbors = []
 
-            # remember that fittestcell is a list of the one (1) fittest cell
-            fittestCell = fittestCells[0]
-            # remember to update grid !
-            newState[fittestCell] = 1
-            newActive.remove(fittestCell)
+    #         # remember that fittestcell is a list of the one (1) fittest cell
+    #         fittestCell = fittestCells[0]
+    #         # remember to update grid !
+    #         newState[fittestCell] = 1
+    #         newActive.remove(fittestCell)
 
-            neighbor = getNeighborCells(fittestCell)
+    #         neighbor = getNeighborCells(fittestCell)
 
-            # populate with all valid neighbors
-            for elem in neighbor:
-                coords = elem[1]
-                if not hasTraversed(newState, coords):
-                    directNeighbors.append(coords)
-                else:
-                    continue
+    #         # populate with all valid neighbors
+    #         for elem in neighbor:
+    #             coords = elem[1]
+    #             if not hasTraversed(newState, coords):
+    #                 directNeighbors.append(coords)
+    #             else:
+    #                 continue
 
-            # may eventually be altered to remove this call, given
-            # redundancy of ACTIVE_LAYER and selection of all neighbors
-            # can currently be used for selectivity of greed
-            pseudoFitness = evaluateCells(directNeighbors, ACTIVE_LAYER)
-            greedyCoords   = getFittestPercent(pseudoFitness, 100)
+    #         # may eventually be altered to remove this call, given
+    #         # redundancy of ACTIVE_LAYER and selection of all neighbors
+    #         # can currently be used for selectivity of greed
+    #         pseudoFitness = evaluateCells(directNeighbors, ACTIVE_LAYER)
+    #         greedyCoords   = getFittestPercent(pseudoFitness, 100)
 
-            for greedyCoord in greedyCoords:
-                vdiff = subtract(greedyCoord[0], fittestCell)
-                dim  = filter(lambda elem: elem != 0, [i if vdiff[i] != 0 else 0 for i in range(len(vdiff))])
-                # dirty fix for zero-th dimension check
-                if dim == []:
-                    dim = 0
-                else:
-                    dim = dim[0]
-                step = 1 if vdiff[dim] > 0 else -1 if vdiff[dim] < 0 else 0
-                bestCoord = ((dim, step),greedyCoord[0])
-                if not hasTraversed(newState, bestCoord[1]):
-                    # traverse dim alters newState correctly and continuously
-                    (newState, newCoord) = traverseDim(newState, 
-                        fittestCell, dim, step)
-                    newActive.append(newCoord)
-        else:
-            selectedCells  = map(lambda elem: elem[0], fittestPercent)
-    else:
-        selectedCells  = map(lambda elem: elem[0], fittestPercent)
+    #         for greedyCoord in greedyCoords:
+    #             vdiff = subtract(greedyCoord[0], fittestCell)
+    #             dim  = filter(lambda elem: elem != 0, [i if vdiff[i] != 0 else 0 for i in range(len(vdiff))])
+    #             # dirty fix for zero-th dimension check
+    #             if dim == []:
+    #                 dim = 0
+    #             else:
+    #                 dim = dim[0]
+    #             step = 1 if vdiff[dim] > 0 else -1 if vdiff[dim] < 0 else 0
+    #             bestCoord = ((dim, step),greedyCoord[0])
+    #             if not hasTraversed(newState, bestCoord[1]):
+    #                 # traverse dim alters newState correctly and continuously
+    #                 (newState, newCoord) = traverseDim(newState, 
+    #                     fittestCell, dim, step)
+    #                 newActive.append(newCoord)
+    #     else:
+    #         selectedCells  = map(lambda elem: elem[0], fittestPercent)
+    # else:
+    #     selectedCells  = map(lambda elem: elem[0], fittestPercent)
 
 
     for cell in selectedCells:
@@ -240,26 +240,26 @@ def propagate(currentState, activeCells, fitnessMap, optimum, ACTIVE_LAYER, sele
         ###################################################
         # code for neighbor choice heuristic
         ###################################################
-        # selectedNeighbors = neighbors # default
+        selectedNeighbors = neighbors # default
         
-        # determine most promising neighbors of fittest cells via barycenter
-        selectedNeighbors = []
-        offset            = getCenterOffset(fittestPercent)
+        # # determine most promising neighbors of fittest cells via barycenter
+        # selectedNeighbors = []
+        # offset            = getCenterOffset(fittestPercent)
     
-        properDim = map(lambda elem: True if abs(elem) >= threshold else False, offset)
+        # properDim = map(lambda elem: True if abs(elem) >= threshold else False, offset)
 
-        signDim   = map(lambda elem: 1 if elem >= 0 else -1, offset)
-        # if no clear advantageous direction, or lack of activity, simple floodfill
-        if not any(properDim) or len(activeCells) < minActive:
-            properDim = [True]*len(offset)
-            signDim   = [0]*len(offset)
+        # signDim   = map(lambda elem: 1 if elem >= 0 else -1, offset)
+        # # if no clear advantageous direction, or lack of activity, simple floodfill
+        # if not any(properDim) or len(activeCells) < minActive:
+        #     properDim = [True]*len(offset)
+        #     signDim   = [0]*len(offset)
 
-        for elem in neighbors:
-            # check if dim is proper and movement in right direction
-            dim  = elem[0][0]
-            step = elem[0][1]
-            if properDim[dim] and signDim[dim]*step >= 0:
-                selectedNeighbors.append(elem)
+        # for elem in neighbors:
+        #     # check if dim is proper and movement in right direction
+        #     dim  = elem[0][0]
+        #     step = elem[0][1]
+        #     if properDim[dim] and signDim[dim]*step >= 0:
+        #         selectedNeighbors.append(elem)
 
         ###################################################
         # code for basic propagation (independent of heuristc)
@@ -417,7 +417,7 @@ def main():
     for selectivity in range(850,900,50):
         print "selectivity: " + str(selectivity)
 
-        MAX_STEP     = 500 # hard cutoff for propagations
+        MAX_STEP     = 1000 # hard cutoff for propagations
         ACTIVE_LAYER = 1 # which layer in stack active (zero-index)
         DIVISIONS    = 5  # active cells per dimension (cartesian product base)
         THRESHOLD    = 3506
@@ -459,7 +459,7 @@ def main():
 
         print "{"
 
-        while len(activeCells) != 0 and count < MAX_STEP and optimum[0][1] < THRESHOLD:
+        while len(activeCells) != 0 and count < MAX_STEP:
             count = count + 1
             fitnessMap = evaluateCells(activeCells, ACTIVE_LAYER)
             (newState, newActive, newOptimum) = propagate(currentState, activeCells, 
@@ -490,7 +490,7 @@ def main():
             #     break
 
             # print str(optimum[0][0]) + "\t\t\t" + "%.3f" % optimum[0][1] + " at count: " + str(count)
-            print "{" + str(fitnessMap[0][0][1]) + "," + str(fitnessMap[0][1]) + "},"
+            print "{" + str(fitnessMap[0][0][1]*10.0+100.0) + "," + str(fitnessMap[0][1]) + "},"
 
         print "}"
 
