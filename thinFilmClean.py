@@ -44,10 +44,14 @@ def main():
 
     #options to plot T/R as function of angle or incident wavelength
     plotTRangle = False
-    plotTRspectrum = False
+    plotTRspectrum = True
 
     #option to evaluate E^2 integral in active layer and plot spectrum
-    evalESQint = True
+    evalESQint = False
+
+    #option to plot normalized power absorbed in active layer across spectrum
+    normPwr = True
+
     #option to plot E^2 throughout structure
     plotESQ = False
 
@@ -56,7 +60,7 @@ def main():
     # measurements in nm
     # note that use of linespace is required currently for spectrum plots
     # this can be circumvented.
-    wls = linspace(1000, 8000, 1000)
+    wls = linspace(800, 8000, 1000)
     # wls = linspace(4000, 4000, 1)
     # currently unnacepting of angle variation
     # angle represents CCW rotation from direction of propagation
@@ -100,20 +104,20 @@ def main():
     # Average E^2 integral in active layer (CQD): 
 
     # model of the old device using a gold back contact
-    stack = [
-           film(6.0, 'NiCr', 'NiCr approximation', False),
-           film(500.0, 2.4 + 0.106j, 'CQD', True),
-           # film(10000.0, 3.43 + 0.1j, 'Gold_0', True),
-           film(150.0, 'au', 'Gold', False)
-           ]
+    # stack = [
+    #        film(6.0, 'NiCr', 'NiCr approximation', False),
+    #        film(500.0, 2.4 + 0.106j, 'CQD', True),
+    #        # film(10000.0, 3.43 + 0.1j, 'Gold_0', True),
+    #        film(150.0, 'au', 'Gold', False)
+    #        ]
 
     # input from experimental data
-    # stack = [
-    #         film(200, 1.399, 'SiO2', False),
-    #         film(400, itoDrudeParams, 'ITO', False),
-    #         film(700, 2.4 + 0.106j, 'CQD', True),
-    #         film(150, 'au', 'Gold', False)
-    #         ]
+    stack = [
+            # film(200, 1.399, 'SiO2', False),
+            film(50, itoDrudeParams, 'ITO', False),
+            film(500, 2.4 + 0.106j, 'CQD', True),
+            film(150, 'au', 'Gold', False)
+            ]
 
     ###########################################################
     # Main processes and evaluation
@@ -188,9 +192,12 @@ def main():
                 saveFile.write('Average absorbed power in active layer ({0}): {1}\n'.format(
                     stack[i].name,PAbsdAvg[i]))
 
+        # currently this is rather meaningless without blackbody weighting
         print 'EQE/IQE = {0}'.format((PAbsdActive/PAbsdTot)*(1-TAvg-RAvg))
-
         ESqIntSpectrumPlot(ESqInt, PAbsd, stack, wls, angles, pols, indices, save, saveFileName)
+
+    if normPwr:
+        (ESqInt,ESqIntAvg, PAbsd, PAbsdAvg) = ESqIntEval(stack,wls,angles,pols,indices,E_i)
         normPwrPlot(PAbsd, stack, wls, angles, pols, n_i, n_f, indices, save, saveFileName)
 
     if plotESQ:
@@ -547,12 +554,6 @@ def TRAnglePlot(T,R,wls,angles,save,saveFileName):
         plt.savefig('results/{0}/{0}-TAnglePlot.pdf'.format(saveFileName))
     plt.show()
 
-#    ________  ______  ____  _______   ____________  __   __  _______  ____  ________________________
-#   / ____/ / / / __ \/ __ \/ ____/ | / /_  __/ /\ \/ /  /  |/  / __ \/ __ \/  _/ ____/  _/ ____/ __ \
-#  / /   / / / / /_/ / /_/ / __/ /  |/ / / / / /  \  /  / /|_/ / / / / / / // // /_   / // __/ / / / /
-# / /___/ /_/ / _, _/ _, _/ /___/ /|  / / / / /___/ /  / /  / / /_/ / /_/ // // __/ _/ // /___/ /_/ /
-# \____/\____/_/ |_/_/ |_/_____/_/ |_/ /_/ /_____/_/  /_/  /_/\____/_____/___/_/   /___/_____/_____/
-
 """Plot T and R as a function of wavenumber k (in m).
 Averages over angles"""
 def TRSpectrumPlot(T,R,wls,angles,save,saveFileName,tPlot=True,
@@ -571,7 +572,6 @@ def TRSpectrumPlot(T,R,wls,angles,save,saveFileName,tPlot=True,
         for j in range(len(wls))]
     RAnglPolAvg = [0.5*(RsAnglAvg[j]+RpAnglAvg[j])
         for j in range(len(wls))]
-    # temporary placement for calculation of absorbance
     TAnglPolAvg = [0.5*(TsAnglAvg[j]+TpAnglAvg[j])
         for j in range(len(wls))]
     k_0 = 1.0e9/wls #conversion included from nm -> m
@@ -598,10 +598,10 @@ def TRSpectrumPlot(T,R,wls,angles,save,saveFileName,tPlot=True,
     # plt.show()
 
     ax = plt.axes()
-    # if tPlot:
+    if tPlot:
         # ax.plot(0.01*k_0, TsAnglAvg, label='T_s')
         # ax.plot(0.01*k_0, TpAnglAvg, label='T_p')
-        # ax.plot(0.01*k_0, TAnglPolAvg, label='T_avg')
+        ax.plot(0.01*k_0, TAnglPolAvg, label='T_avg')
 
     if rPlot:
         # ax.plot(0.01*k_0, RsAnglAvg, label='R_s')
