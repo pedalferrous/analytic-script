@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import scipy.integrate as integrate
 import os
 from scipy.interpolate import interp1d
+import math as math
 
 ###########################################################
 # Primary data structures
@@ -44,7 +45,7 @@ def main():
 
     #options to plot T/R as function of angle or incident wavelength
     plotTRangle = False
-    plotTRspectrum = True
+    plotTRspectrum = False
 
     #option to evaluate E^2 integral in active layer and plot spectrum
     evalESQint = False
@@ -60,7 +61,7 @@ def main():
     # measurements in nm
     # note that use of linespace is required currently for spectrum plots
     # this can be circumvented.
-    wls = linspace(800, 8000, 1000)
+    wls = linspace(1000, 7000, 500)
     # wls = linspace(4000, 4000, 1)
     # currently unnacepting of angle variation
     # angle represents CCW rotation from direction of propagation
@@ -74,13 +75,20 @@ def main():
 
     """ENTER STACK AND MATERIAL PROPERTIES HERE"""
 
-    #list of the parameters for the ITO Drude model
-    #these will be used by indexLookup
-    #these parameters are: restricted fit, both constraints (see notes 3/05)
+    # list of the parameters for the ITO Drude model
+    # these will be used by indexLookup
+    # these parameters are: restricted fit, both constraints (see notes 3/05)
     ito_omega_p = 2.73649315189e+14 #s^-1
     ito_epsilon_inf = 3.24
     ito_gamma = 5.96450643459e+12 #s^-1
     itoDrudeParams = [ito_omega_p, ito_epsilon_inf, ito_gamma]
+
+    # list of parameters for erf bandgap model HgTe
+    base_index = 2.4  # dimensionless
+    nu_0       = 2200 # wavenumber
+    delta_nu   = 500  # wavenumber
+    erf_amp    = 0.1  # cm^-1
+    erfParams  = [base_index, nu_0, delta_nu, erf_amp]
 
     """ENTER MAIN STACK HERE"""
 
@@ -104,20 +112,19 @@ def main():
     # Average E^2 integral in active layer (CQD): 
 
     # model of the old device using a gold back contact
-    # stack = [
-    #        film(6.0, 'NiCr', 'NiCr approximation', False),
-    #        film(500.0, 2.4 + 0.106j, 'CQD', True),
-    #        # film(10000.0, 3.43 + 0.1j, 'Gold_0', True),
-    #        film(150.0, 'au', 'Gold', False)
-    #        ]
+    stack = [
+           film(6.0, 'NiCr', 'NiCr approximation', False),
+           film(500.0, erfParams, 'CQD', True),
+           film(150.0, 'au', 'Gold', False)
+           ]
 
     # input from experimental data
-    stack = [
-            # film(200, 1.399, 'SiO2', False),
-            film(50, itoDrudeParams, 'ITO', False),
-            film(500, 2.4 + 0.106j, 'CQD', True),
-            film(150, 'au', 'Gold', False)
-            ]
+    # stack = [
+    #         # film(200, 1.399, 'SiO2', False),
+    #         film(50, itoDrudeParams, 'ITO', False),
+    #         film(500, erfParams, 'CQD', True),
+    #         film(150, 'au', 'Gold', False)
+    #         ]
 
     ###########################################################
     # Main processes and evaluation
@@ -219,15 +226,29 @@ def indexLookup(index, wl):
         kInterp = interp1d(wlTable, kTable)
         return nInterp(wl) + (1j)*kInterp(wl)
     elif isinstance(index, list):
-        #in this case the argument is parameters for the Drude model
-        #in this case expect the parameters to be in order:
-        #omega_p, epsilon_inf, gamma
-        omega_p = index[0]
-        epsilon_inf = index[1]
-        gamma = index[2]
-        k = (1.0e9/wl) #wavenumber in m^-1
-        (_, n_r, n_i) = drude(k, wl, omega_p, epsilon_inf, gamma)
-        return n_r + (1j)*n_i
+        # for the modeling of HgTe extinction coefficient via
+        # bandgap model, in order:base_index, nu_0, delta_nu, erf_amp
+        if len(index) == 4:
+            base_index = index[0]
+            nu_0       = index[1]
+            delta_nu   = index[2]
+            erf_amp    = index[3]
+            wavenum    = 1.0e7/wl
+            if wavenum <= nu_0:     # below bandgap (possible smoothing needed)
+                return base_index
+            else:                   # above bandgap
+                index = base_index + (1j)*(erf_amp*math.erf((1.0e7/wl - nu_0)/delta_nu))
+                return index
+        else:    
+            # in this case the argument is parameters for the Drude model
+            # in this case expect the parameters to be in order:
+            # omega_p, epsilon_inf, gamma
+            omega_p = index[0]
+            epsilon_inf = index[1]
+            gamma = index[2]
+            k = (1.0e9/wl) #wavenumber in m^-1
+            (_, n_r, n_i) = drude(k, wl, omega_p, epsilon_inf, gamma)
+            return n_r + (1j)*n_i
     else:
         # call based on index name of film
         ntable = loadtxt('{0}-n.csv'.format(index), skiprows=1, unpack=True, delimiter=',')
@@ -696,24 +717,28 @@ def normPwrPlot(PAbsd, stack, wls, angles, pols, n_i, n_f, indices, save, saveFi
     # note that initial film layer should match n_i
     # au may be altered to pure reflector if sufficient accuracy not
     # achieved. All references are to tempStack until noted.
-    tempStack = [
-           film(10000.0, 3.43 + 0.1j, 'abs', True),
-           film(150.0, 'au', 'Gold', False)
-           ]
+   
+    # tempStack = [
+    #        film(10000.0, 3.43 + 0.1j, 'abs', True),
+    #        film(150.0, 'au', 'Gold', False)
+    #        ]
 
-    indices = [[indexLookup(layer.index, wl) for wl in wls] for layer in tempStack]
-    t_angles = snell(indices, angles, n_i, n_f)
-    (I,P) = genMatrices(tempStack, wls, angles, n_i, n_f, indices, t_angles)
+    # indices = [[indexLookup(layer.index, wl) for wl in wls] for layer in tempStack]
+    # t_angles = snell(indices, angles, n_i, n_f)
+    # (I,P) = genMatrices(tempStack, wls, angles, n_i, n_f, indices, t_angles)
 
-    (E_0, E_f, E_i) = evalField(tempStack, wls, angles, pols,
-    n_i, n_f, indices, t_angles, P, I)
+    # (E_0, E_f, E_i) = evalField(tempStack, wls, angles, pols,
+    # n_i, n_f, indices, t_angles, P, I)
 
-    (ESqInt,ESqIntAvg, tempPAbsd, PAbsdAvg) = ESqIntEval(tempStack,wls,angles,pols,indices,E_i)
+    # (ESqInt,ESqIntAvg, tempPAbsd, PAbsdAvg) = ESqIntEval(tempStack,wls,angles,pols,indices,E_i)
 
-    normFactorTable = [sum(tempPAbsd[0][j][k][l] # arbitrary normalization placeholder
-                 for k in range(len(angles))
-                 for l in range(len(pols)))/(len(angles)*len(pols))
-                 for j in range(len(wls))]
+    # normFactorTable = [sum(tempPAbsd[0][j][k][l] # arbitrary normalization placeholder
+    #              for k in range(len(angles))
+    #              for l in range(len(pols)))/(len(angles)*len(pols))
+    #              for j in range(len(wls))]
+
+    # for generic sped up use (assuming constant absorption hereon)
+    normFactor = 2660
 
     # stack should not be used, without reference to tempStack
     ax = plt.axes()
@@ -721,7 +746,8 @@ def normPwrPlot(PAbsd, stack, wls, angles, pols, n_i, n_f, indices, save, saveFi
 
     for i in range(len(stack)):
         if stack[i].active:
-            PAbsdWls = [sum(PAbsd[i][j][k][l]/normFactorTable[j]
+            # PAbsdWls = [sum(PAbsd[i][j][k][l]/normFactorTable[j] # for explicit calculation use
+            PAbsdWls = [sum(PAbsd[i][j][k][l]/normFactor
                 for k in range(len(angles))
                 for l in range(len(pols)))/(len(angles)*len(pols))
                 for j in range(len(wls))]
