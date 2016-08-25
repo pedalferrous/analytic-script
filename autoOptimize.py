@@ -418,8 +418,8 @@ def main():
         print "selectivity: " + str(selectivity)
 
         MAX_STEP     = 1000 # hard cutoff for propagations
-        ACTIVE_LAYER = 1 # which layer in stack active (zero-index)
-        DIVISIONS    = 5  # active cells per dimension (cartesian product base)
+        ACTIVE_LAYER = 1    # which layer in stack active (zero-index)
+        DIVISIONS    = 5    # active cells per dimension (cartesian product base)
         THRESHOLD    = 3506
         
         # same size as searchSpace

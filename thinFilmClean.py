@@ -25,6 +25,8 @@ import math as math
 # active indicates whether (whether integrated E^2 is calculated
 film = namedtuple('layer',['depth','index','name','active'])
 
+# WARNING: activating this will not mesh with current
+# optimized normFactor in normPwr and ODPlot
 peakWavelength = 4000
 blackbody = False
 
@@ -43,17 +45,19 @@ def main():
     saveFileName = 'test'
     save = False
 
-    #options to plot T/R as function of angle or incident wavelength
+    # options to plot T/R as function of angle or incident wavelength
     plotTRangle = False
     plotTRspectrum = False
 
-    #option to evaluate E^2 integral in active layer and plot spectrum
+    # option to evaluate E^2 integral in active layer and plot spectrum
     evalESQint = False
 
-    #option to plot normalized power absorbed in active layer across spectrum
+    # option to plot normalized power absorbed in active layer across spectrum
+    # as well as optical density (axes with method defined limits)
     normPwr = True
+    ODPlot  = False
 
-    #option to plot E^2 throughout structure
+    # option to plot E^2 throughout structure
     plotESQ = False
 
     """ENTER INCIDENT LIGHT PARAMS AND ENVIRONMENT INDICES HERE"""
@@ -61,7 +65,7 @@ def main():
     # measurements in nm
     # note that use of linespace is required currently for spectrum plots
     # this can be circumvented.
-    wls = linspace(1000, 7000, 500)
+    wls = linspace(2000, 5000, 500)
     # wls = linspace(4000, 4000, 1)
     # currently unnacepting of angle variation
     # angle represents CCW rotation from direction of propagation
@@ -86,8 +90,8 @@ def main():
     # list of parameters for erf bandgap model HgTe
     base_index = 2.4  # dimensionless
     nu_0       = 2200 # wavenumber
-    delta_nu   = 500  # wavenumber
-    erf_amp    = 0.1  # cm^-1
+    delta_nu   = 300  # wavenumber
+    erf_amp    = 0.11  # cm^-1
     erfParams  = [base_index, nu_0, delta_nu, erf_amp]
 
     """ENTER MAIN STACK HERE"""
@@ -118,11 +122,16 @@ def main():
            film(150.0, 'au', 'Gold', False)
            ]
 
+    # for the determination of optical density
+    # stack = [
+    #        film(400.0, erfParams, 'CQD', True),
+    #        ]
+
     # input from experimental data
     # stack = [
     #         # film(200, 1.399, 'SiO2', False),
-    #         film(50, itoDrudeParams, 'ITO', False),
-    #         film(500, erfParams, 'CQD', True),
+    #         # film(50, itoDrudeParams, 'ITO', False),
+    #         film(10000, 3.43+0.4j, 'CQD', True),
     #         film(150, 'au', 'Gold', False)
     #         ]
 
@@ -206,6 +215,10 @@ def main():
     if normPwr:
         (ESqInt,ESqIntAvg, PAbsd, PAbsdAvg) = ESqIntEval(stack,wls,angles,pols,indices,E_i)
         normPwrPlot(PAbsd, stack, wls, angles, pols, n_i, n_f, indices, save, saveFileName)
+
+    if ODPlot:
+        (ESqInt,ESqIntAvg, PAbsd, PAbsdAvg) = ESqIntEval(stack,wls,angles,pols,indices,E_i)
+        ODNormPlot(PAbsd, stack, wls, angles, pols, n_i, n_f, indices, save, saveFileName)
 
     if plotESQ:
         ESqPlot(E_i, stack, wls, angles, pols, indices, save, saveFileName)
@@ -747,6 +760,7 @@ def normPwrPlot(PAbsd, stack, wls, angles, pols, n_i, n_f, indices, save, saveFi
     for i in range(len(stack)):
         if stack[i].active:
             # PAbsdWls = [sum(PAbsd[i][j][k][l]/normFactorTable[j] # for explicit calculation use
+
             PAbsdWls = [sum(PAbsd[i][j][k][l]/normFactor
                 for k in range(len(angles))
                 for l in range(len(pols)))/(len(angles)*len(pols))
@@ -758,6 +772,33 @@ def normPwrPlot(PAbsd, stack, wls, angles, pols, n_i, n_f, indices, save, saveFi
     ax.legend()
     ax.set_xlabel('Wavenumber (cm$^-1$)', fontsize=18)
     ax.set_ylabel('(normalized to source)', fontsize=18)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    if save:
+        plt.savefig('results/{0}/{0}-ESqIntSpectrum.pdf'.format(saveFileName))
+    plt.show()
+
+def ODNormPlot(PAbsd, stack, wls, angles, pols, n_i, n_f, indices, save, saveFileName):
+    # for generic sped up use (assuming constant absorption hereon)
+    normFactor = 2660
+
+    # stack should not be used, without reference to tempStack
+    ax = plt.axes()
+    wnums = (1.0e7/wls) #wavenumbers in cm^-1 to be used in plotting
+
+    for i in range(len(stack)):
+        if stack[i].active:
+            ODAbsdWls = [-1.0*log10(1.0 - sum(PAbsd[i][j][k][l]/normFactor
+                for k in range(len(angles))
+                for l in range(len(pols)))/(len(angles)*len(pols)))
+                for j in range(len(wls))]
+            ax.plot(wnums, ODAbsdWls, label='{0} layer power absorbed'.format(stack[i].name))
+
+            plt.ylim([0,0.2])
+
+    ax.legend()
+    ax.set_xlabel('Wavenumber (cm$^-1$)', fontsize=18)
+    ax.set_ylabel('OD (unitless)', fontsize=18)
     plt.xticks(fontsize=15)
     plt.yticks(fontsize=15)
     if save:
