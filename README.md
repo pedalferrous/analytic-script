@@ -12,7 +12,7 @@
 > *Lasciate ogne speranza, voi ch'intrate.* <br/>
 
 #######################################
-## PRIMARY USES & SUMMARY: 
+## PRIMARY USES & SUMMARY:
 * Contents of this project may be used in tandem to
   optimize thin film configurations as well as plot
   internal characteristics. This includes explicit
@@ -57,6 +57,23 @@
 
 #######################################
 ## THINFILMCLEAN METHODS:
+
+### Properties Availible for Display
+  * `plotTRangle`   : Displays transmission and reflection coefficients as a function of
+  angle (currently not in heavy use).
+  * `plotTRspectrum`: Displays transmission and reflection as a function of wavenumber
+  (current method restricts this to average over polarizations, with wavelength plot commented out). 
+  Settings may be easily manipulated in `TRSpectrumPlot`.
+  * `EvalESQint`    : Displays both integral of the square of the e-field in active layers as
+  plotted against spectrum (currently wavenumber), and power absorbed.
+  * `normPwr`       : Displays normalized power absorbed in active layers, with the normalization
+  coefficient currently hard-coded, but with ability to be calculated at cost of time if drastic change
+  in representation of e-fields is to occur (not a trivial modification). This is commented out in situ.
+  * `ODPlot`        : Plot of optical density of active layers with respect to spectrum (note dependence on
+  `normPwr`'s normalization).
+  * `plotESQ`       : Plots magnitude of the e-field within the device itself, with respect to distance
+  along device. The plot axes are auto-adjusted, with units arbitrary and equal intensity across all 
+  wavelengths (unless blackbody weighting is initiated).
 
 ### main:
   * The following descriptors appear in line order.

@@ -54,8 +54,8 @@ def main():
 
     # option to plot normalized power absorbed in active layer across spectrum
     # as well as optical density (axes with method defined limits)
-    normPwr = True
-    ODPlot  = False
+    normPwr = False
+    ODPlot  = True
 
     # option to plot E^2 throughout structure
     plotESQ = False
@@ -116,16 +116,16 @@ def main():
     # Average E^2 integral in active layer (CQD): 
 
     # model of the old device using a gold back contact
-    stack = [
-           film(6.0, 'NiCr', 'NiCr approximation', False),
-           film(500.0, erfParams, 'CQD', True),
-           film(150.0, 'au', 'Gold', False)
-           ]
+    # stack = [
+    #        film(6.0, 'NiCr', 'NiCr approximation', False),
+    #        film(500.0, erfParams, 'CQD', True),
+    #        film(150.0, 'au', 'Gold', False)
+    #        ]
 
     # for the determination of optical density
-    # stack = [
-    #        film(400.0, erfParams, 'CQD', True),
-    #        ]
+    stack = [
+           film(400.0, erfParams, 'CQD', True),
+           ]
 
     # input from experimental data
     # stack = [
@@ -381,7 +381,6 @@ angles, polarizations [expected to be a list of the form [0] or [0,1] where
 0 is normal to the plane of incidence and 1 is parallel to the plane of 
 incidence])."""
 
-# method to return E_i (that is, magnitudes of propagators in every layer)
 def evalField(stack, wls, angles, pol, n_i, n_f, indices, t_angles, P, I):
     # generate set of evolution matrices for each layer
     M = [[[[
@@ -455,12 +454,10 @@ def evalTR(stack, E_f, E_0, angles, n_i, n_f, t_angles, addBulkT=False):
     return (T, R, TAvg, RAvg)
 
 """Weight wavelength of incident light to closer resemble blackbody or
-otherwise specially normalized incident radiation"""
-
-# method will take index and wavelength linespace, and return blackbody curve
-# in terms of weight on given index. Note: this produces new normalization!
-# peak is in nanometers
-# currently relevant in ESqIntEval and ESqPlot
+otherwise specially normalized incident radiation. Method will take index 
+and wavelength linespace, and return blackbody curve in terms of weight 
+on given index. Note: this produces new normalization! peak is in nanometers
+currently relevant in ESqIntEval and ESqPlot"""
 def weightSpectrum(index, wls, peak, active):
     h = 6.626*10**(-34)         # planck constant
     c = 3.0*10**(8)             # speed of light
